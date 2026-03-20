@@ -192,6 +192,28 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
         <canvas id="chart-trend" class="ins-canvas" height="80"></canvas>
       </div>
 
+      <div class="ins-section">
+        <div class="ins-label">Data Confidence</div>
+        <div id="ins-confidence">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div id="conf-bar-wrap" style="flex:1;height:8px;background:#0d1f35;border-radius:4px;overflow:hidden">
+              <div id="conf-bar" style="height:100%;border-radius:4px;transition:width .5s ease;width:0%"></div>
+            </div>
+            <span id="conf-pct" style="font-size:12px;font-weight:bold;color:#64ffda;min-width:36px;text-align:right">—</span>
+          </div>
+          <div id="conf-coverage" style="font-size:9px;color:#8892b0;line-height:1.6"></div>
+          <div id="conf-daily" style="margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div class="ins-section" id="sec-bts">
+        <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span>BTS Cross-Validation</span>
+          <span id="bts-badge" style="font-size:8px;padding:1px 5px;border-radius:3px;background:#1d3557;color:#8892b0">loading</span>
+        </div>
+        <div id="ins-bts" style="font-size:10px;color:#8892b0;line-height:1.7">Fetching official BTS data…</div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -342,9 +364,60 @@ async function loadMonth(m) {
     curData = cache[m];
     populateAirlineDropdown();
     render();
+    loadBTS(m);
     if (!preloading) preloadAll();
   } catch(e) { showErr('Failed to load: ' + e.message); }
   finally { showLoading(false); }
+}
+
+async function loadBTS(m) {
+  const badge = document.getElementById('bts-badge');
+  const box   = document.getElementById('ins-bts');
+  badge.textContent = 'loading'; badge.style.background = '#1d3557'; badge.style.color = '#8892b0';
+  box.textContent = 'Fetching official BTS data…';
+  try {
+    const r = await fetch(`/api/bts/${m+1}`);
+    const d = await r.json();
+    if (!d.available) {
+      badge.textContent = 'unavailable'; badge.style.color = '#f06292';
+      box.innerHTML = `<span style="color:#f0629288">BTS data not yet published for ${MONTHS[m]} 2025.</span><br>BTS typically lags 3–6 months. Try Apr–Sep.`;
+      return;
+    }
+    badge.textContent = 'live'; badge.style.background = '#64ffda18'; badge.style.color = '#64ffda';
+    renderBTS(d, m);
+  } catch(e) {
+    badge.textContent = 'error'; badge.style.color = '#f06292';
+    box.textContent = 'BTS fetch failed: ' + e.message;
+  }
+}
+
+function renderBTS(d, m) {
+  const box = document.getElementById('ins-bts');
+  // Compare BTS intl passenger routes with our intl routes
+  const ourIntlRoutes = curData ? new Set([...curData.arrivals,...curData.departures].filter(f=>f.intl).map(f=>f.code)) : new Set();
+  const btsRoutes     = new Set(d.topAirports.map(([code])=>code));
+  const overlap       = [...ourIntlRoutes].filter(c=>btsRoutes.has(c)).length;
+  const overlapPct    = ourIntlRoutes.size > 0 ? Math.round(overlap/ourIntlRoutes.size*100) : 0;
+
+  const topRows = d.topAirports.slice(0,5).map(([code,pax])=>
+    `<div style="display:flex;justify-content:space-between;margin-top:2px">
+      <span style="color:${ourIntlRoutes.has(code)?'#ffb74d':'#8892b0'}">${code}</span>
+      <span style="color:#e6f1ff">${Number(pax).toLocaleString()} pax</span>
+    </div>`).join('');
+
+  box.innerHTML = `
+    <div style="color:#ccd6f6;margin-bottom:5px">
+      <strong style="color:#ffb74d">${Number(d.totalPassengers).toLocaleString()}</strong> international passengers via ORD in ${MONTHS[m]} 2025
+    </div>
+    <div style="margin-bottom:6px">${d.routeCount} intl routes reported &bull; ${d.scheduledPax.toLocaleString()} scheduled</div>
+    <div style="margin-bottom:4px;padding:4px 6px;background:#0d1f35;border-radius:4px;color:${overlapPct>70?'#64ffda':'#ffb74d'}">
+      Route overlap with our data: <strong>${overlapPct}%</strong> (${overlap}/${ourIntlRoutes.size} routes matched)
+    </div>
+    <div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">TOP INTL ROUTES (BTS)</div>
+    ${topRows}
+    <div style="margin-top:6px;font-size:8px;color:#1d3557aa;border-top:1px solid #1d3557;padding-top:4px">
+      Source: BTS International Report &bull; data.transportation.gov
+    </div>`;
 }
 
 async function preloadAll() {
@@ -529,8 +602,38 @@ function updateInsights(fArr, fDep) {
     drawHBar(c2, topRoutes.slice(0,5).map(([code,v])=>({ label:code, value:v, color:all.find(f=>f.code===code)?.intl?'#ffb74d':'#4fc3f7' })), topRoutes[0]?.[1]||1);
   }
 
+  // ── Confidence panel ──
+  updateConfidence();
+
   // ── Trend sparkline ──
   drawTrend();
+}
+
+function updateConfidence() {
+  if (!curData) return;
+  const conf  = curData.confidence || 70;
+  const color = conf >= 85 ? '#64ffda' : conf >= 70 ? '#ffb74d' : '#f06292';
+  const label = conf >= 85 ? 'High' : conf >= 70 ? 'Medium' : 'Low';
+
+  document.getElementById('conf-bar').style.width       = conf + '%';
+  document.getElementById('conf-bar').style.background  = color;
+  document.getElementById('conf-pct').textContent       = conf + '%';
+  document.getElementById('conf-pct').style.color       = color;
+  document.getElementById('conf-coverage').innerHTML    =
+    `<strong style="color:${color}">${label} confidence</strong><br>` +
+    `${curData.coverage || '12h, 1 day'}<br>` +
+    `Sample days: ${(curData.sampleDays||[curData.date]).join(', ')}`;
+
+  // Daily breakdown mini-table
+  const dt = curData.dailyTotals || {};
+  const rows = Object.entries(dt).map(([date, v]) => {
+    const total = v.arr + v.dep;
+    return `<div style="display:flex;justify-content:space-between;font-size:9px;margin-top:3px">
+      <span style="color:#8892b0">${date.slice(5)}</span>
+      <span><span style="color:#64ffda88">${v.arr}↓</span> <span style="color:#f0629288">${v.dep}↑</span> <strong style="color:#ccd6f6">${total}</strong></span>
+    </div>`;
+  }).join('');
+  document.getElementById('conf-daily').innerHTML = rows;
 }
 
 function drawTrend() {

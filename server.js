@@ -14,12 +14,7 @@ const MAPBOX_TOKEN    = process.env.MAPBOX_TOKEN;
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
 
-// Deliver tokens safely — never hardcoded in frontend HTML
-app.get('/api/config', (_req, res) => {
-  res.json({ mapboxToken: MAPBOX_TOKEN });
-});
-
-// Static airport coordinates lookup (IATA → [lat, lon])
+// Static airport coordinates (IATA → [lat, lon])
 const AIRPORT_COORDS = {
   ABE:[40.6521,-75.4408],ABQ:[35.0402,-106.6090],ACY:[39.4576,-74.5772],ADD:[8.9779,38.7993],
   ALB:[42.7483,-73.8017],ALO:[42.5571,-92.4003],AMM:[31.7226,35.9932],AMS:[52.3086,4.7639],
@@ -79,10 +74,91 @@ const AIRPORT_COORDS = {
   YYC:[51.1215,-114.0127],YYZ:[43.6777,-79.6248],ZRH:[47.4647,8.5492],
 };
 
-// In-memory cache (keyed by month 1-12)
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const pad = n => String(n).padStart(2, '0');
+
+const AERO_PARAMS = {
+  withLeg:'true', direction:'Both', withCancelled:'false',
+  withCodeshared:'false', withCargo:'false', withPrivate:'false',
+};
+
+// Fetch one 12-hour window from AeroDataBox
+async function fetchWindow(from, to) {
+  const { data } = await axios.get(
+    `https://aerodatabox.p.rapidapi.com/flights/airports/iata/ORD/${from}/${to}`,
+    { headers: { 'X-RapidAPI-Key': AERODATABOX_KEY, 'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com' },
+      params: AERO_PARAMS, timeout: 15000 }
+  );
+  return data;
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Fetch full 24-hour day (two 12-hour windows, sequential with delay)
+async function fetchDay(date) {
+  console.log(`  ↓ Fetching 24h: ${date}`);
+  const am = await fetchWindow(`${date}T00:00`, `${date}T11:59`);
+  await sleep(1500);
+  const pm = await fetchWindow(`${date}T12:00`, `${date}T23:59`);
+
+  const dedupe = flights => {
+    const seen = new Set();
+    return (flights || []).filter(f => {
+      const key = f.number || `${f.departure?.airport?.iata}-${f.arrival?.airport?.iata}-${f.departure?.scheduledTime?.local}`;
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  };
+
+  return {
+    arrivals:   dedupe([...(am.arrivals  ||[]), ...(pm.arrivals  ||[])]),
+    departures: dedupe([...(am.departures||[]), ...(pm.departures||[])]),
+  };
+}
+
+// Normalize raw AeroDataBox flight → clean object, enriched with coords
+function normalize(flights, side, date) {
+  return (flights || [])
+    .filter(f => {
+      const apt = side === 'arr' ? f.departure?.airport : f.arrival?.airport;
+      return apt?.iata && AIRPORT_COORDS[apt.iata];
+    })
+    .map(f => {
+      const apt = side === 'arr' ? f.departure.airport : f.arrival.airport;
+      const [lat, lon] = AIRPORT_COORDS[apt.iata];
+      return {
+        code:    apt.iata,
+        name:    apt.name || apt.iata,
+        lat, lon,
+        country: apt.countryCode || '',
+        intl:    apt.countryCode !== 'us' && apt.countryCode !== 'US',
+        airline: f.airline?.name || '',
+        flight:  f.number || '',
+        date,
+      };
+    });
+}
+
+// Confidence: coefficient of variation across daily totals → 0-100 score
+function calcConfidence(dailyTotals) {
+  const counts = Object.values(dailyTotals).map(d => d.arr + d.dep);
+  if (counts.length < 2) return 70;
+  const mean = counts.reduce((a, b) => a + b, 0) / counts.length;
+  const variance = counts.reduce((s, v) => s + (v - mean) ** 2, 0) / counts.length;
+  const cv = mean > 0 ? (Math.sqrt(variance) / mean) * 100 : 50;
+  return Math.round(Math.min(97, Math.max(50, 100 - cv * 2.5)));
+}
+
+// ── In-memory cache ───────────────────────────────────────────────────────────
 const cache = new Map();
 
-// Fetch 12-hr window for the 15th of each 2025 month from AeroDataBox
+// ── Token endpoint ────────────────────────────────────────────────────────────
+app.get('/api/config', (_req, res) => {
+  res.json({ mapboxToken: MAPBOX_TOKEN });
+});
+
+// ── Main flight data endpoint — 3 sample days × 24h ──────────────────────────
+// Sample days: 5th, 15th, 25th of each month (covers weekday variety)
 app.get('/api/flights/:month', async (req, res) => {
   const month = parseInt(req.params.month, 10);
   if (isNaN(month) || month < 1 || month > 12) {
@@ -93,73 +169,112 @@ app.get('/api/flights/:month', async (req, res) => {
     return res.json(cache.get(month));
   }
 
-  const pad  = n => String(n).padStart(2, '0');
-  const date = `2025-${pad(month)}-15`;
-  const from = `${date}T06:00`;
-  const to   = `${date}T17:59`;
+  const sampleDays = [5, 15, 25].map(d => `2025-${pad(month)}-${pad(d)}`);
+  const allArrivals = [], allDepartures = [];
+  const dailyTotals = {};
 
   try {
-    console.log(`↓ Fetching AeroDataBox: ORD ${from} → ${to}`);
-    const { data } = await axios.get(
-      `https://aerodatabox.p.rapidapi.com/flights/airports/iata/ORD/${from}/${to}`,
-      {
-        headers: {
-          'X-RapidAPI-Key':  AERODATABOX_KEY,
-          'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com',
-        },
-        params: {
-          withLeg:        'true',
-          direction:      'Both',
-          withCancelled:  'false',
-          withCodeshared: 'false',
-          withCargo:      'false',
-          withPrivate:    'false',
-        },
-        timeout: 12000,
-      }
-    );
+    // Fetch each sample day sequentially with delay between days
+    for (const date of sampleDays) {
+      const day = await fetchDay(date);
+      await sleep(1500);
+      const arr = normalize(day.arrivals,   'arr', date);
+      const dep = normalize(day.departures, 'dep', date);
+      allArrivals.push(...arr);
+      allDepartures.push(...dep);
+      dailyTotals[date] = { arr: arr.length, dep: dep.length };
+      console.log(`    ${date}: arr=${arr.length} dep=${dep.length}`);
+    }
 
-    // Normalize helper — picks the "other" airport for each flight
-    const normalize = (flights, side) =>
-      (flights || [])
-        .filter(f => {
-          const apt = side === 'arr' ? f.departure?.airport : f.arrival?.airport;
-          return apt?.iata && AIRPORT_COORDS[apt.iata];
-        })
-        .map(f => {
-          const apt = side === 'arr' ? f.departure.airport : f.arrival.airport;
-          const [lat, lon] = AIRPORT_COORDS[apt.iata];
-          return {
-            code:    apt.iata,
-            name:    apt.name || apt.iata,
-            lat,
-            lon,
-            country: apt.countryCode || '',
-            intl:    (apt.countryCode || 'US') !== 'us' && (apt.countryCode || 'US') !== 'US',
-            airline: f.airline?.name || '',
-            flight:  f.number   || '',
-          };
-        });
-
+    const confidence = calcConfidence(dailyTotals);
     const result = {
-      arrivals:   normalize(data.arrivals,   'arr'),
-      departures: normalize(data.departures, 'dep'),
-      window_hours: 12,
-      date,
+      arrivals:    allArrivals,
+      departures:  allDepartures,
+      sampleDays,
+      dailyTotals,
+      coverage:    '72h across 3 sample days (5th, 15th, 25th) × 24h each',
+      confidence,
     };
 
-    console.log(`  ✓ arrivals=${result.arrivals.length}  departures=${result.departures.length}`);
+    console.log(`✓ Month ${month}: ${allArrivals.length} arr, ${allDepartures.length} dep | confidence=${confidence}%`);
     cache.set(month, result);
     res.json(result);
   } catch (err) {
     const detail = err.response?.data || err.message;
-    console.error(`✗ Month ${month} error:`, detail);
+    console.error(`✗ Month ${month}:`, detail);
     res.status(500).json({ error: String(err.message), detail });
+  }
+});
+
+// ── BTS cross-validation endpoint (data.transportation.gov) ──────────────────
+// Dataset xgub-n9bw = International Report Passengers (ORD intl routes, official)
+const btsCache = new Map();
+
+app.get('/api/bts/:month', async (req, res) => {
+  const month = parseInt(req.params.month, 10);
+  if (isNaN(month) || month < 1 || month > 12) {
+    return res.status(400).json({ error: 'Month must be 1–12' });
+  }
+  if (btsCache.has(month)) return res.json(btsCache.get(month));
+
+  try {
+    const { data } = await axios.get(
+      'https://data.transportation.gov/resource/xgub-n9bw.json',
+      {
+        params: {
+          usg_apt: 'ORD',
+          year:    '2025',
+          month:   String(month),
+          $limit:  '2000',
+          $select: 'fg_apt,carrier,type,total,scheduled,charter',
+        },
+        headers: { Accept: 'application/json' },
+        timeout: 12000,
+      }
+    );
+
+    if (!data.length) {
+      return res.json({ available: false, reason: 'BTS data not yet published for this month' });
+    }
+
+    // Aggregate by airport and carrier
+    const byAirport = {}, byCarrier = {};
+    let totalPax = 0, scheduledPax = 0;
+
+    data.forEach(r => {
+      const t = parseInt(r.total || '0');
+      const s = parseInt(r.scheduled || '0');
+      totalPax    += t;
+      scheduledPax += s;
+      byAirport[r.fg_apt]  = (byAirport[r.fg_apt]  || 0) + t;
+      byCarrier[r.carrier] = (byCarrier[r.carrier]  || 0) + t;
+    });
+
+    const result = {
+      available:       true,
+      source:          'BTS International Report Passengers (data.transportation.gov)',
+      month, year:     2025,
+      totalPassengers: totalPax,
+      scheduledPax,
+      charterPax:      totalPax - scheduledPax,
+      topAirports:     Object.entries(byAirport).sort((a,b)=>b[1]-a[1]).slice(0,12),
+      topCarriers:     Object.entries(byCarrier).sort((a,b)=>b[1]-a[1]).slice(0,10),
+      routeCount:      Object.keys(byAirport).length,
+      note:            'International passengers only. BTS typically lags 3–6 months.',
+    };
+
+    console.log(`✓ BTS month ${month}: ${totalPax.toLocaleString()} intl passengers, ${result.routeCount} routes`);
+    btsCache.set(month, result);
+    res.json(result);
+  } catch (err) {
+    console.error('BTS fetch error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
 app.listen(PORT, () => {
   console.log(`\n✈  ORD Flight Simulator → http://localhost:${PORT}`);
   console.log(`   AeroDataBox : ${AERODATABOX_KEY ? '✓' : '✗ missing'}`);
-  console.log(`   Mapbox      : ${MAPBOX_TOKEN    ? '✓' : '✗ missing'}\n`);
+  console.log(`   Mapbox      : ${MAPBOX_TOKEN    ? '✓' : '✗ missing'}`);
+  console.log(`   BTS API     : data.transportation.gov/resource/xgub-n9bw\n`);
 });
