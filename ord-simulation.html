@@ -10,18 +10,18 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#020c1b; color:#ccd6f6; font-family:'Segoe UI',monospace; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
+/* ── Header ── */
 #header { background:rgba(2,12,27,.97); border-bottom:1px solid #1d3557; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; z-index:20; flex-shrink:0; }
 .hdr-left h1 { font-size:15px; color:#64ffda; letter-spacing:2px; }
 .hdr-left p  { font-size:9px; color:#8892b0; letter-spacing:1.5px; margin-top:2px; }
-
 #controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .ctrl-group { display:flex; align-items:center; gap:6px; }
 .ctrl-lbl { font-size:9px; color:#8892b0; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
 
 .month-btn { background:#0a1929; border:1px solid #1d3557; color:#8892b0; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:10px; font-family:monospace; transition:all .2s; }
-.month-btn.active   { background:#64ffda18; border-color:#64ffda; color:#64ffda; }
+.month-btn.active { background:#64ffda18; border-color:#64ffda; color:#64ffda; }
 .month-btn:hover:not(.active):not(:disabled) { border-color:#4fc3f7; color:#4fc3f7; }
-.month-btn:disabled { opacity:0.3; cursor:not-allowed; }
+.month-btn:disabled { opacity:0.28; cursor:not-allowed; }
 
 .tog { background:#0a1929; border:1px solid #1d3557; color:#8892b0; padding:4px 11px; border-radius:20px; cursor:pointer; font-size:10px; font-family:monospace; transition:all .2s; }
 .tog.on-arr  { border-color:#64ffda; color:#64ffda;  background:#64ffda18; }
@@ -29,42 +29,78 @@ body { background:#020c1b; color:#ccd6f6; font-family:'Segoe UI',monospace; heig
 .tog.on-type { border-color:#4fc3f7; color:#4fc3f7;  background:#4fc3f718; }
 .tog.on-al   { border-color:#ffb74d; color:#ffb74d;  background:#ffb74d18; }
 
-select#airlineSelect {
-  background:#0a1929; border:1px solid #1d3557; color:#ccd6f6;
-  padding:4px 8px; border-radius:4px; font-size:10px; font-family:monospace;
-  cursor:pointer; outline:none; max-width:160px;
-}
+select#airlineSelect { background:#0a1929; border:1px solid #1d3557; color:#ccd6f6; padding:4px 8px; border-radius:4px; font-size:10px; font-family:monospace; cursor:pointer; outline:none; max-width:155px; }
 select#airlineSelect:focus { border-color:#4fc3f7; }
 
-#map { flex:1; }
+/* ── Map area ── */
+#map-wrap { flex:1; position:relative; overflow:hidden; }
+#map { position:absolute; inset:0; }
 
+/* ── Insights panel ── */
+#insights {
+  position:absolute; right:14px; top:10px; bottom:10px;
+  width:268px; z-index:15;
+  background:rgba(2,10,24,0.93); border:1px solid #1d3557;
+  border-radius:10px; backdrop-filter:blur(10px);
+  display:flex; flex-direction:column; overflow:hidden;
+  transition:transform .28s cubic-bezier(.4,0,.2,1), opacity .28s;
+}
+#insights.hidden { transform:translateX(296px); opacity:0; pointer-events:none; }
+
+#ins-header { padding:10px 12px 8px; border-bottom:1px solid #1d3557; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+#ins-header span { font-size:9px; color:#64ffda; letter-spacing:2px; }
+#ins-close { background:none; border:none; color:#8892b0; cursor:pointer; font-size:14px; line-height:1; padding:2px 4px; }
+#ins-close:hover { color:#ccd6f6; }
+
+#ins-body { flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:14px; }
+#ins-body::-webkit-scrollbar { width:3px; }
+#ins-body::-webkit-scrollbar-thumb { background:#1d3557; border-radius:2px; }
+
+.ins-section { display:flex; flex-direction:column; gap:6px; }
+.ins-label { font-size:8px; color:#8892b0; letter-spacing:1.5px; text-transform:uppercase; padding-bottom:4px; border-bottom:1px solid #0d1f35; }
+
+/* Narrative */
+#ins-narrative { font-size:11px; line-height:1.65; color:#ccd6f6; }
+#ins-narrative strong { color:#64ffda; }
+#ins-narrative em { color:#ffb74d; font-style:normal; }
+
+/* Balance bar */
+#ins-balance { height:22px; border-radius:4px; overflow:hidden; display:flex; }
+#bal-arr { background:#64ffda; transition:width .4s ease; }
+#bal-dep { background:#f06292; transition:width .4s ease; flex:1; }
+#bal-labels { display:flex; justify-content:space-between; font-size:9px; margin-top:3px; }
+#bal-arr-lbl { color:#64ffda; }
+#bal-dep-lbl { color:#f06292; }
+
+/* Charts */
+.ins-canvas { width:100%; display:block; }
+
+/* Trend dots */
+.trend-wrap { position:relative; }
+#trend-loading { position:absolute; right:0; top:0; font-size:8px; color:#8892b0; letter-spacing:1px; }
+
+/* ── Stats bar ── */
 #statsbar { background:rgba(2,12,27,.97); border-top:1px solid #1d3557; padding:6px 16px; display:flex; gap:20px; align-items:center; flex-shrink:0; flex-wrap:wrap; }
 .st { text-align:center; }
 .sv { font-size:15px; font-weight:bold; font-variant-numeric:tabular-nums; }
 .sl { font-size:8px; color:#8892b0; letter-spacing:1px; margin-top:1px; }
-
-#al-legend { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-left:auto; }
+#al-legend { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-left:auto; }
 .al-chip { display:flex; align-items:center; gap:5px; font-size:9px; color:#8892b0; cursor:pointer; padding:2px 6px; border-radius:3px; border:1px solid transparent; transition:all .15s; }
 .al-chip:hover { border-color:#1d3557; color:#ccd6f6; }
-.al-chip.selected { border-color:var(--c); color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent); }
-.al-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.al-chip.selected { border-color:var(--c); color:var(--c); }
+.al-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 
+/* ── Loading / error ── */
 #loading { position:fixed; inset:0; background:rgba(2,12,27,0.88); display:flex; align-items:center; justify-content:center; z-index:200; flex-direction:column; gap:14px; }
 #loading p { color:#64ffda; font-size:12px; letter-spacing:2px; }
 .spinner { width:36px; height:36px; border:3px solid #1d3557; border-top-color:#64ffda; border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 #loading.hidden { display:none; }
+#err-banner { display:none; position:absolute; top:50px; left:50%; transform:translateX(-50%); background:#1a0a0a; border:1px solid #f0629244; color:#f06292; padding:8px 20px; border-radius:6px; font-size:11px; z-index:50; }
 
-#err-banner { display:none; position:absolute; top:60px; left:50%; transform:translateX(-50%); background:#1a0a0a; border:1px solid #f0629244; color:#f06292; padding:8px 20px; border-radius:6px; font-size:11px; z-index:50; }
-
-.mapboxgl-popup-content {
-  background:rgba(2,12,27,0.97) !important; border:1px solid #64ffda33 !important;
-  color:#ccd6f6 !important; font-family:'Segoe UI',monospace !important;
-  font-size:12px !important; padding:10px 14px !important;
-  border-radius:7px !important; min-width:200px !important;
-  box-shadow:0 4px 24px rgba(0,0,0,0.6) !important;
-}
-.mapboxgl-popup-tip { display:none !important; }
+/* ── Mapbox popup ── */
+.mapboxgl-popup-content { background:rgba(2,12,27,0.97)!important; border:1px solid #64ffda33!important; color:#ccd6f6!important; font-family:'Segoe UI',monospace!important; font-size:12px!important; padding:10px 14px!important; border-radius:7px!important; min-width:200px!important; box-shadow:0 4px 24px rgba(0,0,0,0.6)!important; }
+.mapboxgl-popup-tip { display:none!important; }
 .pop-code { font-size:17px; font-weight:bold; margin-bottom:2px; }
 .pop-sub  { font-size:10px; color:#8892b0; margin-bottom:7px; }
 .pop-row  { display:flex; justify-content:space-between; gap:14px; margin-top:3px; font-size:11px; }
@@ -80,6 +116,7 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
 <div id="loading"><div class="spinner"></div><p>LOADING FLIGHT DATA...</p></div>
 <div id="err-banner"></div>
 
+<!-- Header -->
 <div id="header">
   <div class="hdr-left">
     <h1>&#9992; CHICAGO O'HARE (ORD) — 2025 FLIGHT ROUTES</h1>
@@ -103,20 +140,63 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
     </div>
     <div class="ctrl-group">
       <span class="ctrl-lbl">Airline:</span>
-      <select id="airlineSelect" onchange="setAirline(this.value)">
-        <option value="all">All Airlines</option>
-      </select>
+      <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
     </div>
     <div class="ctrl-group">
       <span class="ctrl-lbl">Color:</span>
       <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')">Direction</button>
       <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')">By Airline</button>
     </div>
+    <button class="tog on-type" id="btnInsights" onclick="toggleInsights()" style="margin-left:4px">&#9998; Insights</button>
   </div>
 </div>
 
-<div id="map"></div>
+<!-- Map + insights panel -->
+<div id="map-wrap">
+  <div id="map"></div>
 
+  <!-- Insights panel -->
+  <div id="insights">
+    <div id="ins-header">
+      <span>INSIGHTS &amp; ANALYTICS</span>
+      <button id="ins-close" onclick="toggleInsights()">&#215;</button>
+    </div>
+    <div id="ins-body">
+
+      <div class="ins-section">
+        <div class="ins-label">What you're looking at</div>
+        <div id="ins-narrative">Select a month to load data.</div>
+      </div>
+
+      <div class="ins-section">
+        <div class="ins-label">Arrivals vs Departures</div>
+        <div id="ins-balance"><div id="bal-arr"></div><div id="bal-dep"></div></div>
+        <div id="bal-labels"><span id="bal-arr-lbl">ARR 0%</span><span id="bal-dep-lbl">DEP 0%</span></div>
+      </div>
+
+      <div class="ins-section" id="sec-chart1">
+        <div class="ins-label" id="chart1-label">Top Airlines</div>
+        <canvas id="chart1" class="ins-canvas" height="130"></canvas>
+      </div>
+
+      <div class="ins-section" id="sec-chart2">
+        <div class="ins-label" id="chart2-label">Top Routes</div>
+        <canvas id="chart2" class="ins-canvas" height="120"></canvas>
+      </div>
+
+      <div class="ins-section">
+        <div class="ins-label" style="display:flex;justify-content:space-between">
+          <span>Monthly Trend (Apr–Dec)</span>
+          <span id="trend-loading" style="font-size:8px;color:#8892b0"></span>
+        </div>
+        <canvas id="chart-trend" class="ins-canvas" height="80"></canvas>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Stats bar -->
 <div id="statsbar">
   <div class="st"><div class="sv" id="sMonth"  style="color:#64ffda">—</div><div class="sl">MONTH</div></div>
   <div class="st"><div class="sv" id="sArr"    style="color:#64ffda">0</div><div class="sl">ARRIVALS</div></div>
@@ -128,188 +208,130 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
 </div>
 
 <script>
+// ── Constants ────────────────────────────────────────────────────────────────
 const MONTHS  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const ORD_LNG = -87.9073, ORD_LAT = 41.9742;
 const AVAIL   = [false,false,false,true,true,true,true,true,true,true,true,true];
 
-// Airline brand colors
 const AIRLINE_COLORS = {
-  'United':           '#4fc3f7',
-  'American':         '#ef5350',
-  'Delta Air Lines':  '#7c4dff',
-  'Southwest':        '#ff9800',
-  'Air Canada':       '#c62828',
-  'Envoy Air':        '#26c6da',
-  'SkyWest Airlines': '#66bb6a',
-  'Spirit':           '#ffee58',
-  'Frontier':         '#43a047',
-  'Alaska':           '#1565c0',
-  'Contour Aviation': '#ff7043',
-  'Japan Airlines':   '#e53935',
-  'ANA':              '#29b6f6',
-  'Cathay Pacific':   '#00897b',
-  'Lufthansa':        '#fdd835',
-  'British Airways':  '#1a237e',
-  'Air France':       '#0d47a1',
-  'KLM':              '#0277bd',
-  'Emirates':         '#d32f2f',
-  'Korean Air':       '#1565c0',
+  'United':'#4fc3f7','American':'#ef5350','Delta Air Lines':'#7c4dff',
+  'Southwest':'#ff9800','Air Canada':'#c62828','Envoy Air':'#26c6da',
+  'SkyWest Airlines':'#66bb6a','Spirit':'#ffee58','Frontier':'#43a047',
+  'Alaska':'#1565c0','Contour Aviation':'#ff7043','Japan Airlines':'#e53935',
+  'ANA':'#29b6f6','Cathay Pacific':'#00897b','Lufthansa':'#fdd835',
+  'British Airways':'#1a237e','Air France':'#0d47a1','KLM':'#0277bd',
+  'Emirates':'#d32f2f','Korean Air':'#1e88e5',
 };
 const AL_DEFAULT = '#8892b0';
+const REGION = { EU:['LHR','CDG','FRA','AMS','ZRH','MAD','BCN','FCO','VIE','MUC','STR','CPH','DUB','BRU','KEF','BEG'], AS:['NRT','HND','HKG','ICN','NGO','KIX','PVG','AUH','DOH','DXB','IST'], CA:['YYZ','YUL','YVR','YOW','YQB','YYC','YWG'], LA:['MEX','CUN','GDL','PTY','SJO','GUA','PVR','SJD','PUJ','CZM','MBJ','NAS','UVF','SXM','STT'] };
 
-function alColor(name) { return AIRLINE_COLORS[name] || AL_DEFAULT; }
+function alColor(n) { return AIRLINE_COLORS[n] || AL_DEFAULT; }
+function regionOf(code) {
+  for (const [r,codes] of Object.entries(REGION)) if (codes.includes(code)) return r;
+  return 'US';
+}
 
+// ── State ────────────────────────────────────────────────────────────────────
 let map, popup;
-let showArr   = true, showDep = true;
-let routeType = 'all';
-let colorMode = 'direction';
-let curAirline = 'all';
-let curMonth  = 10;
-let cache     = {};
-let curData   = null;
+let showArr = true, showDep = true;
+let routeType = 'all', colorMode = 'direction', curAirline = 'all';
+let curMonth = 10;
+let cache = {}, curData = null;
+let insightsOpen = true;
+let preloading = false;
 
-// ── Month buttons ──────────────────────────────────────────────
+// ── Month buttons ────────────────────────────────────────────────────────────
 const mb = document.getElementById('monthBtns');
 MONTHS.forEach((m, i) => {
   const b = document.createElement('button');
   b.className = 'month-btn' + (i === curMonth ? ' active' : '');
-  b.textContent = m;
-  b.disabled = !AVAIL[i];
-  b.title = AVAIL[i] ? '' : 'Data unavailable (>365 days ago)';
+  b.textContent = m; b.disabled = !AVAIL[i];
+  b.title = AVAIL[i] ? '' : 'Unavailable — exceeds 365-day API window';
   b.onclick = () => { if (AVAIL[i]) setMonth(i); };
   mb.appendChild(b);
 });
 
-// ── Init ───────────────────────────────────────────────────────
+// ── Mapbox init ──────────────────────────────────────────────────────────────
 async function init() {
   const cfg = await fetch('/api/config').then(r => r.json());
   mapboxgl.accessToken = cfg.mapboxToken;
 
   map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v11',
-    center: [-87.91, 41.98],
-    zoom: 3.2,
-    projection: 'globe',
+    container: 'map', style: 'mapbox://styles/mapbox/dark-v11',
+    center: [-87.91, 41.98], zoom: 3.2, projection: 'globe',
   });
-
-  popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 14 });
-  map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+  popup = new mapboxgl.Popup({ closeButton:false, closeOnClick:false, offset:14 });
+  map.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right');
 
   map.on('load', () => {
-    map.setFog({
-      color: 'rgb(2,12,27)', 'high-color': 'rgb(8,22,50)',
-      'horizon-blend': 0.08, 'space-color': 'rgb(1,4,14)', 'star-intensity': 0.55,
-    });
+    map.setFog({ color:'rgb(2,12,27)', 'high-color':'rgb(8,22,50)', 'horizon-blend':0.08, 'space-color':'rgb(1,4,14)', 'star-intensity':0.55 });
 
-    map.addSource('arcs',     { type:'geojson', data: fc([]) });
-    map.addSource('airports', { type:'geojson', data: fc([]) });
-    map.addSource('ord',      { type:'geojson', data: fc([{
-      type:'Feature',
-      geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] },
-      properties:{ code:'ORD', name:"Chicago O'Hare International" }
-    }]) });
+    map.addSource('arcs',     { type:'geojson', data:fc([]) });
+    map.addSource('airports', { type:'geojson', data:fc([]) });
+    map.addSource('ord',      { type:'geojson', data:fc([{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{ code:'ORD' } }]) });
 
-    // Arc layers — color driven by feature property
-    map.addLayer({
-      id:'arcs-arr', type:'line', source:'arcs',
-      filter:['==',['get','dir'],'arr'],
-      paint:{
-        'line-color': '#64ffda',
-        'line-width': ['interpolate',['linear'],['get','count'], 1,0.7, 5,1.4, 20,2.5],
-        'line-opacity': 0.5,
-      },
-    });
-    map.addLayer({
-      id:'arcs-dep', type:'line', source:'arcs',
-      filter:['==',['get','dir'],'dep'],
-      paint:{
-        'line-color': '#f06292',
-        'line-width': ['interpolate',['linear'],['get','count'], 1,0.7, 5,1.4, 20,2.5],
-        'line-opacity': 0.5,
-      },
-    });
+    map.addLayer({ id:'arcs-arr', type:'line', source:'arcs', filter:['==',['get','dir'],'arr'],
+      paint:{ 'line-color':'#64ffda', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.5 } });
+    map.addLayer({ id:'arcs-dep', type:'line', source:'arcs', filter:['==',['get','dir'],'dep'],
+      paint:{ 'line-color':'#f06292', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.5 } });
 
-    // Airport dots
-    map.addLayer({
-      id:'airports-circle', type:'circle', source:'airports',
-      paint:{
-        'circle-radius':       ['interpolate',['linear'],['get','total'], 1,4, 10,7, 40,12],
-        'circle-color':        ['case',['get','intl'],'#ffb74d','#4fc3f7'],
-        'circle-opacity':       0.88,
-        'circle-stroke-width':  1.2,
-        'circle-stroke-color': '#020c1b',
-      },
-    });
-    map.addLayer({
-      id:'airports-label', type:'symbol', source:'airports',
-      layout:{
-        'text-field':  ['get','code'],
-        'text-font':   ['DIN Offc Pro Bold','Arial Unicode MS Bold'],
-        'text-size':    9,
-        'text-offset': [0,1.5],
-        'text-anchor': 'top',
-      },
-      paint:{
-        'text-color':      '#ccd6f6',
-        'text-halo-color': '#020c1b',
-        'text-halo-width':  1.2,
-      },
-    });
+    map.addLayer({ id:'airports-circle', type:'circle', source:'airports', paint:{
+      'circle-radius':['interpolate',['linear'],['get','total'],1,4,10,7,40,12],
+      'circle-color':['case',['get','intl'],'#ffb74d','#4fc3f7'],
+      'circle-opacity':0.88, 'circle-stroke-width':1.2, 'circle-stroke-color':'#020c1b' } });
+    map.addLayer({ id:'airports-label', type:'symbol', source:'airports', layout:{
+      'text-field':['get','code'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+      'text-size':9, 'text-offset':[0,1.5], 'text-anchor':'top' },
+      paint:{ 'text-color':'#ccd6f6', 'text-halo-color':'#020c1b', 'text-halo-width':1.2 } });
 
-    // ORD hub
     map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':22,'circle-color':'#64ffda','circle-opacity':0.12,'circle-blur':1 } });
     map.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':11,'circle-color':'#64ffda','circle-opacity':0.95,'circle-stroke-width':2,'circle-stroke-color':'#020c1b' } });
     map.addLayer({ id:'ord-label', type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':11,'text-offset':[0,2],'text-anchor':'top' }, paint:{ 'text-color':'#64ffda','text-halo-color':'#020c1b','text-halo-width':2 } });
 
-    // Hover — airport dots
-    map.on('mouseenter', 'airports-circle', e => {
+    // Hover — airports
+    map.on('mouseenter','airports-circle', e => {
       map.getCanvas().style.cursor = 'pointer';
       const p = e.features[0].properties;
-      const coords = e.features[0].geometry.coordinates.slice();
-      const alRows = JSON.parse(p.airlineBreakdown || '[]')
-        .map(a => `<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(a.name)}"></div><span style="flex:1">${a.name}</span><span style="color:#e6f1ff;font-weight:bold">${a.count}</span></div>`)
-        .join('');
-      popup.setLngLat(coords).setHTML(`
+      const alRows = JSON.parse(p.airlineBreakdown||'[]')
+        .map(a=>`<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(a.name)}"></div><span style="flex:1">${a.name}</span><span style="color:#e6f1ff;font-weight:bold">${a.count}</span></div>`).join('');
+      popup.setLngLat(e.features[0].geometry.coordinates.slice()).setHTML(`
         <div class="pop-code" style="color:${p.intl?'#ffb74d':'#4fc3f7'}">${p.code}</div>
         <div class="pop-sub">${p.name} &bull; ${p.intl?'International':'Domestic'}</div>
-        <div class="pop-row"><span>Arrivals to ORD</span>    <span class="pop-val" style="color:#64ffda">${p.arrivals}</span></div>
+        <div class="pop-row"><span>Arrivals to ORD</span><span class="pop-val" style="color:#64ffda">${p.arrivals}</span></div>
         <div class="pop-row"><span>Departures from ORD</span><span class="pop-val" style="color:#f06292">${p.departures}</span></div>
-        <div class="pop-row"><span>Total flights</span>       <span class="pop-val">${p.total}</span></div>
-        ${alRows ? `<hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">AIRLINES</div>${alRows}` : ''}
+        <div class="pop-row"><span>Total flights</span><span class="pop-val">${p.total}</span></div>
+        ${alRows?`<hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">AIRLINES ON THIS ROUTE</div>${alRows}`:''}
       `).addTo(map);
     });
-    map.on('mouseleave', 'airports-circle', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+    map.on('mouseleave','airports-circle', ()=>{ map.getCanvas().style.cursor=''; popup.remove(); });
 
-    // Hover — ORD hub
-    map.on('mouseenter', 'ord-circle', () => {
-      map.getCanvas().style.cursor = 'pointer';
-      if (!curData) return;
-      const fArr = filtered(curData.arrivals), fDep = filtered(curData.departures);
-      const alCounts = {};
-      [...fArr,...fDep].forEach(f => { if(f.airline) alCounts[f.airline]=(alCounts[f.airline]||0)+1; });
-      const top5 = Object.entries(alCounts).sort((a,b)=>b[1]-a[1]).slice(0,5)
-        .map(([n,c])=>`<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(n)}"></div><span style="flex:1">${n}</span><span style="color:#e6f1ff;font-weight:bold">${c}</span></div>`).join('');
+    // Hover — ORD
+    map.on('mouseenter','ord-circle', ()=>{
+      map.getCanvas().style.cursor='pointer';
+      if(!curData) return;
+      const fA=filtered(curData.arrivals), fD=filtered(curData.departures);
+      const c={}; [...fA,...fD].forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+1; });
+      const top5=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,5)
+        .map(([n,v])=>`<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(n)}"></div><span style="flex:1">${n}</span><span style="color:#e6f1ff;font-weight:bold">${v}</span></div>`).join('');
       popup.setLngLat([ORD_LNG,ORD_LAT]).setHTML(`
         <div class="pop-code" style="color:#64ffda">ORD</div>
         <div class="pop-sub">Chicago O'Hare International</div>
-        <div class="pop-row"><span>Arrivals (12h)</span>   <span class="pop-val" style="color:#64ffda">${fArr.length}</span></div>
-        <div class="pop-row"><span>Departures (12h)</span> <span class="pop-val" style="color:#f06292">${fDep.length}</span></div>
-        <div class="pop-row"><span>Intl arrivals</span>    <span class="pop-val" style="color:#ffb74d">${fArr.filter(f=>f.intl).length}</span></div>
-        <div class="pop-row"><span>Date sampled</span>     <span class="pop-val">${curData.date}</span></div>
+        <div class="pop-row"><span>Arrivals (12h)</span><span class="pop-val" style="color:#64ffda">${fA.length}</span></div>
+        <div class="pop-row"><span>Departures (12h)</span><span class="pop-val" style="color:#f06292">${fD.length}</span></div>
+        <div class="pop-row"><span>Intl arrivals</span><span class="pop-val" style="color:#ffb74d">${fA.filter(f=>f.intl).length}</span></div>
+        <div class="pop-row"><span>Date sampled</span><span class="pop-val">${curData.date}</span></div>
         <hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">TOP AIRLINES</div>${top5}
       `).addTo(map);
     });
-    map.on('mouseleave', 'ord-circle', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+    map.on('mouseleave','ord-circle', ()=>{ map.getCanvas().style.cursor=''; popup.remove(); });
 
     loadMonth(curMonth);
   });
 }
 
-// ── Data loading ───────────────────────────────────────────────
+// ── Data loading ─────────────────────────────────────────────────────────────
 async function loadMonth(m) {
-  showLoading(true); hideErr();
-  curMonth = m;
+  showLoading(true); hideErr(); curMonth = m;
   try {
     if (!cache[m]) {
       const r = await fetch(`/api/flights/${m+1}`);
@@ -320,48 +342,27 @@ async function loadMonth(m) {
     curData = cache[m];
     populateAirlineDropdown();
     render();
-  } catch(e) {
-    showErr('Failed to load: ' + e.message);
-  } finally {
-    showLoading(false);
+    if (!preloading) preloadAll();
+  } catch(e) { showErr('Failed to load: ' + e.message); }
+  finally { showLoading(false); }
+}
+
+async function preloadAll() {
+  preloading = true;
+  const months = [3,4,5,6,7,8,9,10,11].filter(m => !cache[m]);
+  for (const m of months) {
+    try {
+      const r = await fetch(`/api/flights/${m+1}`);
+      const j = await r.json();
+      if (!j.error) { cache[m] = j; drawTrend(); }
+    } catch(e) {}
+    await delay(350);
   }
+  document.getElementById('trend-loading').textContent = '';
+  preloading = false;
 }
 
-function populateAirlineDropdown() {
-  if (!curData) return;
-  const all = [...curData.arrivals, ...curData.departures];
-  const counts = {};
-  all.forEach(f => { if(f.airline) counts[f.airline] = (counts[f.airline]||0)+1; });
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-
-  const sel = document.getElementById('airlineSelect');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="all">All Airlines</option>';
-  sorted.forEach(([name, cnt]) => {
-    const o = document.createElement('option');
-    o.value = name; o.textContent = `${name} (${cnt})`;
-    sel.appendChild(o);
-  });
-  sel.value = sorted.find(([n])=>n===prev) ? prev : 'all';
-
-  buildLegend(sorted.slice(0,8));
-}
-
-function buildLegend(airlines) {
-  const lg = document.getElementById('al-legend');
-  lg.innerHTML = '';
-  airlines.forEach(([name]) => {
-    const c = alColor(name);
-    const chip = document.createElement('div');
-    chip.className = 'al-chip' + (curAirline === name ? ' selected' : '');
-    chip.style.setProperty('--c', c);
-    chip.innerHTML = `<div class="al-dot" style="background:${c}"></div>${name}`;
-    chip.onclick = () => setAirlineChip(name);
-    lg.appendChild(chip);
-  });
-}
-
-// ── Filtering ──────────────────────────────────────────────────
+// ── Filtering ─────────────────────────────────────────────────────────────────
 function filtered(list) {
   return list.filter(f => {
     if (routeType === 'domestic')      return !f.intl;
@@ -370,14 +371,13 @@ function filtered(list) {
   }).filter(f => curAirline === 'all' || f.airline === curAirline);
 }
 
-// ── Render ─────────────────────────────────────────────────────
+// ── Map render ────────────────────────────────────────────────────────────────
 function render() {
   if (!curData || !map.isStyleLoaded()) return;
+  const fArr = showArr ? filtered(curData.arrivals)  : [];
+  const fDep = showDep ? filtered(curData.departures): [];
 
-  const fArr = showArr ? filtered(curData.arrivals)   : [];
-  const fDep = showDep ? filtered(curData.departures) : [];
-
-  // Aggregate airports
+  // Aggregate by airport
   const aptMap = {};
   function agg(list, type) {
     list.forEach(f => {
@@ -386,69 +386,48 @@ function render() {
       if (f.airline) aptMap[f.code].alCounts[f.airline] = (aptMap[f.code].alCounts[f.airline]||0)+1;
     });
   }
-  agg(fArr, 'arrivals');
-  agg(fDep, 'departures');
+  agg(fArr,'arrivals'); agg(fDep,'departures');
 
-  // Build arcs — one per airport, colored by dominant airline or direction
-  const arcFeatures = [];
   const arrCnt = countBy(fArr), depCnt = countBy(fDep);
 
+  const arcFeatures = [];
   Object.keys(arrCnt).forEach(code => {
     const f = fArr.find(x=>x.code===code); if(!f) return;
-    const domAl = dominantAirline(fArr.filter(x=>x.code===code));
-    arcFeatures.push({ type:'Feature',
-      geometry:{ type:'LineString', coordinates:[[f.lon,f.lat],[ORD_LNG,ORD_LAT]] },
-      properties:{ dir:'arr', code, count:arrCnt[code], intl:f.intl, alColor:alColor(domAl) }
-    });
+    arcFeatures.push({ type:'Feature', geometry:{ type:'LineString', coordinates:[[f.lon,f.lat],[ORD_LNG,ORD_LAT]] },
+      properties:{ dir:'arr', code, count:arrCnt[code], intl:f.intl, alColor:alColor(dominantAl(fArr.filter(x=>x.code===code))) } });
   });
   Object.keys(depCnt).forEach(code => {
     const f = fDep.find(x=>x.code===code); if(!f) return;
-    const domAl = dominantAirline(fDep.filter(x=>x.code===code));
-    arcFeatures.push({ type:'Feature',
-      geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],[f.lon,f.lat]] },
-      properties:{ dir:'dep', code, count:depCnt[code], intl:f.intl, alColor:alColor(domAl) }
-    });
+    arcFeatures.push({ type:'Feature', geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],[f.lon,f.lat]] },
+      properties:{ dir:'dep', code, count:depCnt[code], intl:f.intl, alColor:alColor(dominantAl(fDep.filter(x=>x.code===code))) } });
   });
 
-  // Airport features
   const aptFeatures = Object.values(aptMap).map(a => {
     const alBreakdown = Object.entries(a.alCounts).sort((x,y)=>y[1]-x[1]).slice(0,6).map(([n,c])=>({name:n,count:c}));
-    return { type:'Feature',
-      geometry:{ type:'Point', coordinates:[a.lon,a.lat] },
-      properties:{
-        code:a.code, name:a.name, intl:a.intl,
-        arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures,
-        airlineBreakdown: JSON.stringify(alBreakdown),
-      }
-    };
+    return { type:'Feature', geometry:{ type:'Point', coordinates:[a.lon,a.lat] },
+      properties:{ code:a.code, name:a.name, intl:a.intl, arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures, airlineBreakdown:JSON.stringify(alBreakdown) } };
   });
 
   map.getSource('arcs').setData(fc(arcFeatures));
   map.getSource('airports').setData(fc(aptFeatures));
   applyColorMode();
   updateStats(fArr, fDep);
+  updateInsights(fArr, fDep);
 }
 
 function applyColorMode() {
-  if (colorMode === 'airline') {
-    map.setPaintProperty('arcs-arr', 'line-color', ['get','alColor']);
-    map.setPaintProperty('arcs-dep', 'line-color', ['get','alColor']);
-    map.setPaintProperty('arcs-arr', 'line-opacity', 0.65);
-    map.setPaintProperty('arcs-dep', 'line-opacity', 0.65);
-  } else {
-    map.setPaintProperty('arcs-arr', 'line-color', '#64ffda');
-    map.setPaintProperty('arcs-dep', 'line-color', '#f06292');
-    map.setPaintProperty('arcs-arr', 'line-opacity', 0.5);
-    map.setPaintProperty('arcs-dep', 'line-opacity', 0.5);
-  }
+  const isAl = colorMode === 'airline';
+  map.setPaintProperty('arcs-arr', 'line-color', isAl ? ['get','alColor'] : '#64ffda');
+  map.setPaintProperty('arcs-dep', 'line-color', isAl ? ['get','alColor'] : '#f06292');
+  map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.7 : 0.5);
+  map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.7 : 0.5);
 }
 
 function updateStats(fArr, fDep) {
-  const all    = [...fArr,...fDep];
+  const all = [...fArr,...fDep];
   const routes = new Set(all.map(f=>f.code));
   const intlR  = new Set(all.filter(f=>f.intl).map(f=>f.code));
-  const counts = {};
-  all.forEach(f=>{ counts[f.code]=(counts[f.code]||0)+1; });
+  const counts = {}; all.forEach(f=>{ counts[f.code]=(counts[f.code]||0)+1; });
   const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('sMonth').textContent  = MONTHS[curMonth];
   document.getElementById('sArr').textContent    = fArr.length.toLocaleString();
@@ -458,50 +437,326 @@ function updateStats(fArr, fDep) {
   document.getElementById('sTop').textContent    = top ? `${top[0]} (${top[1]})` : '—';
 }
 
-// ── Controls ───────────────────────────────────────────────────
+// ── Insights panel ────────────────────────────────────────────────────────────
+function updateInsights(fArr, fDep) {
+  if (!insightsOpen) return;
+  const all    = [...fArr,...fDep];
+  const total  = all.length;
+  if (!total) { document.getElementById('ins-narrative').innerHTML = 'No data for current filters.'; return; }
+
+  // Airline counts
+  const alCounts = {};
+  all.forEach(f => { if(f.airline) alCounts[f.airline]=(alCounts[f.airline]||0)+1; });
+  const topAl = Object.entries(alCounts).sort((a,b)=>b[1]-a[1]);
+  const dom   = topAl[0];
+  const domPct = dom ? Math.round(dom[1]/total*100) : 0;
+
+  // Route counts
+  const aptCounts = {};
+  all.forEach(f=>{ aptCounts[f.code]=(aptCounts[f.code]||0)+1; });
+  const topRoutes = Object.entries(aptCounts).sort((a,b)=>b[1]-a[1]);
+  const topRoute  = topRoutes[0];
+
+  // Intl stats
+  const intlFlights = all.filter(f=>f.intl);
+  const intlPct = Math.round(intlFlights.length/total*100);
+  const intlDests = new Set(intlFlights.map(f=>f.code)).size;
+
+  // ── Narrative ──
+  let lines = [];
+  if (curAirline !== 'all') {
+    const alIntl = all.filter(f=>f.intl).length;
+    const alDom  = total - alIntl;
+    lines.push(`<strong>${curAirline}</strong> operated <strong>${total}</strong> flights through ORD in the ${MONTHS[curMonth]} 12-hour window.`);
+    lines.push(`${alDom} domestic and <em>${alIntl} international</em> — ${Math.round(alIntl/total*100)}% of their traffic is cross-border.`);
+    if (topRoute) lines.push(`Their busiest connection is <strong>${topRoute[0]}</strong> with ${topRoute[1]} flights in this window.`);
+  } else if (routeType === 'international') {
+    const regions = {};
+    intlFlights.forEach(f=>{ const r=regionOf(f.code); regions[r]=(regions[r]||0)+1; });
+    const topReg = Object.entries(regions).sort((a,b)=>b[1]-a[1])[0];
+    lines.push(`ORD connected to <strong>${intlDests} international destinations</strong> on ${curData.date}.`);
+    if (topReg) lines.push(`<em>${{EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[topReg[0]]||topReg[0]}</em> leads with ${topReg[1]} flights, followed by ${Object.entries(regions).sort((a,b)=>b[1]-a[1]).slice(1).map(([r,v])=>`${({EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[r]||r)} (${v})`).slice(0,2).join(', ')}.`);
+    if (dom) lines.push(`${dom[0]} runs the most international operations — <strong>${domPct}%</strong> of intl traffic.`);
+  } else if (routeType === 'domestic') {
+    lines.push(`<strong>${total} domestic flights</strong> passed through ORD in this 12-hour window — ${fArr.length} arriving, ${fDep.length} departing.`);
+    if (dom) lines.push(`<strong>${dom[0]}</strong> dominates domestic operations at <em>${domPct}%</em> market share (${dom[1]} flights).`);
+    if (topRoute) lines.push(`${topRoute[0]} is the most connected domestic city with ${topRoute[1]} total movements.`);
+  } else {
+    lines.push(`ORD processed <strong>${fArr.length} arrivals</strong> and <strong>${fDep.length} departures</strong> in a 12-hour window on ${curData.date}.`);
+    if (intlPct > 0) lines.push(`International routes make up <em>${intlPct}%</em> of traffic across ${intlDests} destinations.`);
+    if (dom) lines.push(`<strong>${dom[0]}</strong> leads with <em>${domPct}%</em> share — ${dom[1]} flights in the window.`);
+  }
+  if (!showArr && showDep) lines.push(`<em>Departures only mode</em> — showing ${fDep.length} outbound flights.`);
+  if (showArr && !showDep) lines.push(`<em>Arrivals only mode</em> — showing ${fArr.length} inbound flights.`);
+
+  document.getElementById('ins-narrative').innerHTML = lines.join(' ');
+
+  // ── Balance bar ──
+  const arrPct = total ? Math.round(fArr.length/total*100) : 50;
+  const depPct = 100 - arrPct;
+  document.getElementById('bal-arr').style.width = arrPct + '%';
+  document.getElementById('bal-arr-lbl').textContent = `ARR ${arrPct}%`;
+  document.getElementById('bal-dep-lbl').textContent = `DEP ${depPct}%`;
+
+  // ── Chart 1: Airlines or regions ──
+  const c1 = document.getElementById('chart1');
+  c1.width = c1.parentElement.clientWidth;
+  if (curAirline !== 'all') {
+    document.getElementById('chart1-label').textContent = `${curAirline} — Top Routes`;
+    drawHBar(c1, topRoutes.slice(0,6).map(([code,v])=>({ label:code, value:v, color:alColor(curAirline) })), topRoutes[0]?.[1]||1);
+  } else if (routeType === 'international') {
+    document.getElementById('chart1-label').textContent = 'International Regions';
+    const regions = {}; intlFlights.forEach(f=>{ const r=regionOf(f.code); regions[r]=(regions[r]||0)+1; });
+    const regLabels = {EU:'Europe',AS:'Asia',CA:'Canada',LA:'Lat Am',US:'Other'};
+    const regColors = {EU:'#4fc3f7',AS:'#ff9800',CA:'#ef5350',LA:'#66bb6a',US:'#8892b0'};
+    const regData = Object.entries(regions).sort((a,b)=>b[1]-a[1]).map(([r,v])=>({ label:regLabels[r]||r, value:v, color:regColors[r]||AL_DEFAULT }));
+    drawHBar(c1, regData, regData[0]?.value||1);
+  } else {
+    document.getElementById('chart1-label').textContent = 'Airlines by Flight Count';
+    drawHBar(c1, topAl.slice(0,6).map(([name,v])=>({ label:name.split(' ')[0], value:v, color:alColor(name) })), topAl[0]?.[1]||1);
+  }
+
+  // ── Chart 2: Top routes ──
+  const c2 = document.getElementById('chart2');
+  c2.width = c2.parentElement.clientWidth;
+  document.getElementById('chart2-label').textContent = curAirline !== 'all' ? `${curAirline} — Arr vs Dep Split` : 'Busiest Routes';
+  if (curAirline !== 'all') {
+    // Show arr vs dep for this airline across top routes
+    const arrR = countBy(fArr), depR = countBy(fDep);
+    const allCodes = [...new Set([...Object.keys(arrR),...Object.keys(depR)])].sort((a,b)=>(arrR[b]||0)+(depR[b]||0)-((arrR[a]||0)+(depR[a]||0))).slice(0,5);
+    drawStackedBar(c2, allCodes.map(code=>({ label:code, arr:arrR[code]||0, dep:depR[code]||0 })));
+  } else {
+    drawHBar(c2, topRoutes.slice(0,5).map(([code,v])=>({ label:code, value:v, color:all.find(f=>f.code===code)?.intl?'#ffb74d':'#4fc3f7' })), topRoutes[0]?.[1]||1);
+  }
+
+  // ── Trend sparkline ──
+  drawTrend();
+}
+
+function drawTrend() {
+  const available = [3,4,5,6,7,8,9,10,11];
+  const loaded    = available.filter(m => cache[m]);
+  const pending   = available.length - loaded.length;
+  document.getElementById('trend-loading').textContent = pending > 0 ? `loading ${pending} more…` : '';
+
+  const points = available.map(m => {
+    if (!cache[m]) return null;
+    const fA = cache[m].arrivals.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
+    const fD = cache[m].departures.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
+    return (!showArr&&!showDep)?0 : (!showArr)?fD.length : (!showDep)?fA.length : fA.length+fD.length;
+  });
+  const labels = available.map(m => MONTHS[m]);
+
+  const c = document.getElementById('chart-trend');
+  c.width = c.parentElement.clientWidth;
+  drawSparkline(c, points, labels, curAirline!=='all' ? alColor(curAirline) : '#64ffda', curMonth - 3);
+}
+
+// ── Chart drawing ─────────────────────────────────────────────────────────────
+function drawHBar(canvas, items, maxVal) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!items.length) return;
+
+  const rowH   = H / items.length;
+  const labelW = 58, valW = 28, barW = W - labelW - valW - 6;
+
+  items.forEach(({ label, value, color }, i) => {
+    const y  = i * rowH;
+    const bw = Math.max(2, (value / maxVal) * barW);
+    const cy = y + rowH / 2;
+
+    // Label
+    ctx.fillStyle = '#8892b0'; ctx.font = '9px monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(label.slice(0,8), labelW - 4, cy);
+
+    // Bar bg
+    ctx.fillStyle = '#0d1f35';
+    roundRect(ctx, labelW, y + rowH*0.22, barW, rowH*0.56, 2);
+    ctx.fill();
+
+    // Bar fill
+    ctx.fillStyle = color || '#4fc3f7';
+    roundRect(ctx, labelW, y + rowH*0.22, bw, rowH*0.56, 2);
+    ctx.fill();
+
+    // Value
+    ctx.fillStyle = '#ccd6f6'; ctx.font = 'bold 9px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(value, labelW + barW + 4, cy);
+  });
+}
+
+function drawStackedBar(canvas, items) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!items.length) return;
+
+  const rowH   = H / items.length;
+  const labelW = 38, barW = W - labelW - 4;
+  const maxVal = Math.max(...items.map(x => x.arr + x.dep), 1);
+
+  items.forEach(({ label, arr, dep }, i) => {
+    const y  = i * rowH;
+    const cy = y + rowH / 2;
+    const aw = (arr / maxVal) * barW;
+    const dw = (dep / maxVal) * barW;
+
+    ctx.fillStyle = '#8892b0'; ctx.font = '9px monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, labelW - 4, cy);
+
+    ctx.fillStyle = '#0d1f35';
+    roundRect(ctx, labelW, y+rowH*0.2, barW, rowH*0.6, 2); ctx.fill();
+
+    ctx.fillStyle = '#64ffda';
+    roundRect(ctx, labelW, y+rowH*0.2, aw, rowH*0.6, 2); ctx.fill();
+
+    ctx.fillStyle = '#f06292';
+    roundRect(ctx, labelW+aw, y+rowH*0.2, dw, rowH*0.6, 2); ctx.fill();
+
+    ctx.fillStyle = '#8892b0'; ctx.font = '8px monospace'; ctx.textAlign = 'left';
+    ctx.fillText(`${arr}↓ ${dep}↑`, labelW + aw + dw + 4, cy);
+  });
+}
+
+function drawSparkline(canvas, points, labels, color, highlightIdx) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const valid   = points.filter(p => p !== null);
+  if (valid.length < 2) { ctx.fillStyle='#8892b0'; ctx.font='9px monospace'; ctx.textAlign='center'; ctx.fillText('Loading more months…', W/2, H/2); return; }
+
+  const max = Math.max(...valid), min = Math.min(...valid);
+  const range = max - min || 1;
+  const n = points.length;
+  const padT=10, padB=18, padL=8, padR=8;
+  const cW = W-padL-padR, cH = H-padT-padB;
+
+  const xs = points.map((_,i) => padL + (i/(n-1))*cW);
+  const ys = points.map(p => p===null ? null : padT + cH - ((p-min)/range)*cH);
+
+  // Gradient fill under line
+  const grad = ctx.createLinearGradient(0, padT, 0, H-padB);
+  grad.addColorStop(0, color+'55'); grad.addColorStop(1, color+'00');
+
+  const validPts = points.map((p,i)=>p!==null?{x:xs[i],y:ys[i]}:null).filter(Boolean);
+  ctx.beginPath();
+  validPts.forEach((pt,i)=>{ i===0?ctx.moveTo(pt.x,pt.y):ctx.lineTo(pt.x,pt.y); });
+  ctx.lineTo(validPts[validPts.length-1].x, H-padB);
+  ctx.lineTo(validPts[0].x, H-padB);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath(); let first=true;
+  points.forEach((p,i)=>{ if(p===null){first=true;return;} first?ctx.moveTo(xs[i],ys[i]):ctx.lineTo(xs[i],ys[i]); first=false; });
+  ctx.strokeStyle=color; ctx.lineWidth=1.8; ctx.stroke();
+
+  // Dots + labels
+  points.forEach((p,i)=>{
+    const isHL = i === highlightIdx;
+    if (p !== null) {
+      ctx.beginPath(); ctx.arc(xs[i],ys[i], isHL?4:2.5, 0, Math.PI*2);
+      ctx.fillStyle = isHL ? '#fff' : color;
+      if (isHL) { ctx.shadowColor=color; ctx.shadowBlur=8; }
+      ctx.fill(); ctx.shadowBlur=0;
+    }
+    // Label
+    ctx.fillStyle = isHL ? '#e6f1ff' : (p===null?'#1d3557':'#8892b0');
+    ctx.font = (isHL?'bold ':'')+`8px monospace`;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText(labels[i], xs[i], H-13);
+    // Null dot
+    if (p===null) { ctx.beginPath(); ctx.arc(xs[i],H-padB-cH/2,1.5,0,Math.PI*2); ctx.fillStyle='#1d3557'; ctx.fill(); }
+  });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+// ── Populate airline dropdown ─────────────────────────────────────────────────
+function populateAirlineDropdown() {
+  if (!curData) return;
+  const counts = {};
+  [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const sel = document.getElementById('airlineSelect');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">All Airlines</option>';
+  sorted.forEach(([name,cnt])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} (${cnt})`; sel.appendChild(o); });
+  sel.value = sorted.find(([n])=>n===prev) ? prev : 'all';
+  buildLegend(sorted.slice(0,7));
+}
+
+function buildLegend(airlines) {
+  const lg = document.getElementById('al-legend');
+  lg.innerHTML='';
+  airlines.forEach(([name])=>{
+    const c=alColor(name), chip=document.createElement('div');
+    chip.className='al-chip'+(curAirline===name?' selected':'');
+    chip.style.setProperty('--c',c);
+    chip.innerHTML=`<div class="al-dot" style="background:${c}"></div>${name.split(' ')[0]}`;
+    chip.onclick=()=>setAirlineChip(name);
+    lg.appendChild(chip);
+  });
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
 function setMonth(m) {
   document.querySelectorAll('.month-btn').forEach((b,i)=>b.classList.toggle('active',i===m));
   loadMonth(m);
 }
 function toggleType(t) {
-  if(t==='arr'){ showArr=!showArr; document.getElementById('btnArr').classList.toggle('on-arr',showArr); }
-  else         { showDep=!showDep; document.getElementById('btnDep').classList.toggle('on-dep',showDep); }
-  if(curData) render();
+  if(t==='arr'){showArr=!showArr;document.getElementById('btnArr').classList.toggle('on-arr',showArr);}
+  else          {showDep=!showDep;document.getElementById('btnDep').classList.toggle('on-dep',showDep);}
+  if(curData)render();
 }
 function setRoute(t) {
   routeType=t;
   ['btnAll','btnDom','btnIntl'].forEach(id=>document.getElementById(id).classList.remove('on-type'));
   document.getElementById(t==='all'?'btnAll':t==='domestic'?'btnDom':'btnIntl').classList.add('on-type');
-  if(curData) render();
+  if(curData)render();
 }
 function setAirline(v) {
-  curAirline = v;
-  document.querySelectorAll('.al-chip').forEach(c=>{ c.classList.toggle('selected', c.textContent.trim()===v); });
-  if(curData) render();
+  curAirline=v;
+  document.querySelectorAll('.al-chip').forEach(c=>c.classList.toggle('selected',c.querySelector('.al-dot').nextSibling?.textContent?.trim()===v.split(' ')[0]));
+  if(curData)render();
 }
 function setAirlineChip(name) {
-  curAirline = (curAirline===name) ? 'all' : name;
+  curAirline = curAirline===name ? 'all' : name;
   document.getElementById('airlineSelect').value = curAirline;
-  document.querySelectorAll('.al-chip').forEach(c=>{
-    const n = c.textContent.trim();
-    c.classList.toggle('selected', n===curAirline);
-  });
-  if(curData) render();
+  document.querySelectorAll('.al-chip').forEach(c=>{ const n=c.querySelector('.al-dot').nextSibling?.textContent?.trim(); c.classList.toggle('selected',n===curAirline.split(' ')[0]); });
+  if(curData)render();
 }
 function setColorMode(m) {
   colorMode=m;
-  document.getElementById('btnColDir').classList.toggle('on-type', m==='direction');
-  document.getElementById('btnColAl').classList.toggle('on-al',   m==='airline');
-  if(curData) render();
+  document.getElementById('btnColDir').classList.toggle('on-type',m==='direction');
+  document.getElementById('btnColAl').classList.toggle('on-al',m==='airline');
+  if(curData)render();
+}
+function toggleInsights() {
+  insightsOpen=!insightsOpen;
+  document.getElementById('insights').classList.toggle('hidden',!insightsOpen);
+  document.getElementById('btnInsights').classList.toggle('on-type',insightsOpen);
+  if(insightsOpen&&curData){ const fA=filtered(curData.arrivals),fD=filtered(curData.departures); updateInsights(fA,fD); }
 }
 
-// ── Helpers ────────────────────────────────────────────────────
-function fc(features) { return { type:'FeatureCollection', features }; }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fc(f) { return { type:'FeatureCollection', features:f }; }
 function countBy(list) { const m={}; list.forEach(f=>{ m[f.code]=(m[f.code]||0)+1; }); return m; }
-function dominantAirline(list) {
-  const c={}; list.forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+1; });
-  return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
-}
+function dominantAl(list) { const c={}; list.forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+1; }); return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0]||''; }
+function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
 function showLoading(v) { document.getElementById('loading').classList.toggle('hidden',!v); }
 function showErr(msg)   { const b=document.getElementById('err-banner'); b.textContent=msg; b.style.display='block'; }
 function hideErr()      { document.getElementById('err-banner').style.display='none'; }
