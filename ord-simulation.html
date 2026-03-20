@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chicago ORD – Flight Routes 2025</title>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#020c1b; color:#ccd6f6; font-family:'Segoe UI',monospace; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+#header { background:rgba(2,12,27,.97); border-bottom:1px solid #1d3557; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; z-index:20; flex-shrink:0; }
+.hdr-left h1 { font-size:15px; color:#64ffda; letter-spacing:2px; }
+.hdr-left p  { font-size:9px; color:#8892b0; letter-spacing:1.5px; margin-top:2px; }
+
+#controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.ctrl-group { display:flex; align-items:center; gap:6px; }
+.ctrl-lbl { font-size:9px; color:#8892b0; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+
+.month-btn { background:#0a1929; border:1px solid #1d3557; color:#8892b0; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:10px; font-family:monospace; transition:all .2s; }
+.month-btn.active   { background:#64ffda18; border-color:#64ffda; color:#64ffda; }
+.month-btn:hover:not(.active):not(:disabled) { border-color:#4fc3f7; color:#4fc3f7; }
+.month-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+.tog { background:#0a1929; border:1px solid #1d3557; color:#8892b0; padding:4px 11px; border-radius:20px; cursor:pointer; font-size:10px; font-family:monospace; transition:all .2s; }
+.tog.on-arr  { border-color:#64ffda; color:#64ffda;  background:#64ffda18; }
+.tog.on-dep  { border-color:#f06292; color:#f06292;  background:#f0629218; }
+.tog.on-type { border-color:#4fc3f7; color:#4fc3f7;  background:#4fc3f718; }
+.tog.on-al   { border-color:#ffb74d; color:#ffb74d;  background:#ffb74d18; }
+
+select#airlineSelect {
+  background:#0a1929; border:1px solid #1d3557; color:#ccd6f6;
+  padding:4px 8px; border-radius:4px; font-size:10px; font-family:monospace;
+  cursor:pointer; outline:none; max-width:160px;
+}
+select#airlineSelect:focus { border-color:#4fc3f7; }
+
+#map { flex:1; }
+
+#statsbar { background:rgba(2,12,27,.97); border-top:1px solid #1d3557; padding:6px 16px; display:flex; gap:20px; align-items:center; flex-shrink:0; flex-wrap:wrap; }
+.st { text-align:center; }
+.sv { font-size:15px; font-weight:bold; font-variant-numeric:tabular-nums; }
+.sl { font-size:8px; color:#8892b0; letter-spacing:1px; margin-top:1px; }
+
+#al-legend { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-left:auto; }
+.al-chip { display:flex; align-items:center; gap:5px; font-size:9px; color:#8892b0; cursor:pointer; padding:2px 6px; border-radius:3px; border:1px solid transparent; transition:all .15s; }
+.al-chip:hover { border-color:#1d3557; color:#ccd6f6; }
+.al-chip.selected { border-color:var(--c); color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent); }
+.al-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+#loading { position:fixed; inset:0; background:rgba(2,12,27,0.88); display:flex; align-items:center; justify-content:center; z-index:200; flex-direction:column; gap:14px; }
+#loading p { color:#64ffda; font-size:12px; letter-spacing:2px; }
+.spinner { width:36px; height:36px; border:3px solid #1d3557; border-top-color:#64ffda; border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+#loading.hidden { display:none; }
+
+#err-banner { display:none; position:absolute; top:60px; left:50%; transform:translateX(-50%); background:#1a0a0a; border:1px solid #f0629244; color:#f06292; padding:8px 20px; border-radius:6px; font-size:11px; z-index:50; }
+
+.mapboxgl-popup-content {
+  background:rgba(2,12,27,0.97) !important; border:1px solid #64ffda33 !important;
+  color:#ccd6f6 !important; font-family:'Segoe UI',monospace !important;
+  font-size:12px !important; padding:10px 14px !important;
+  border-radius:7px !important; min-width:200px !important;
+  box-shadow:0 4px 24px rgba(0,0,0,0.6) !important;
+}
+.mapboxgl-popup-tip { display:none !important; }
+.pop-code { font-size:17px; font-weight:bold; margin-bottom:2px; }
+.pop-sub  { font-size:10px; color:#8892b0; margin-bottom:7px; }
+.pop-row  { display:flex; justify-content:space-between; gap:14px; margin-top:3px; font-size:11px; }
+.pop-val  { color:#e6f1ff; font-weight:bold; }
+.pop-divider { border:none; border-top:1px solid #1d3557; margin:6px 0; }
+.pop-al-row { font-size:10px; display:flex; align-items:center; gap:6px; margin-top:3px; }
+.pop-al-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.mapboxgl-ctrl-bottom-right,.mapboxgl-ctrl-bottom-left { display:none; }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><p>LOADING FLIGHT DATA...</p></div>
+<div id="err-banner"></div>
+
+<div id="header">
+  <div class="hdr-left">
+    <h1>&#9992; CHICAGO O'HARE (ORD) — 2025 FLIGHT ROUTES</h1>
+    <p>REAL AERODATABOX DATA &bull; ARRIVALS &amp; DEPARTURES &bull; 12-HR WINDOW &bull; 15TH OF EACH MONTH</p>
+  </div>
+  <div id="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">Month:</span>
+      <div id="monthBtns" style="display:flex;gap:3px;"></div>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">Show:</span>
+      <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')">&#8595; Arrivals</button>
+      <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')">&#8593; Departures</button>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">Routes:</span>
+      <button class="tog on-type" id="btnAll"  onclick="setRoute('all')">All</button>
+      <button class="tog"         id="btnDom"  onclick="setRoute('domestic')">Domestic</button>
+      <button class="tog"         id="btnIntl" onclick="setRoute('international')">Intl</button>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">Airline:</span>
+      <select id="airlineSelect" onchange="setAirline(this.value)">
+        <option value="all">All Airlines</option>
+      </select>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-lbl">Color:</span>
+      <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')">Direction</button>
+      <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')">By Airline</button>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div id="statsbar">
+  <div class="st"><div class="sv" id="sMonth"  style="color:#64ffda">—</div><div class="sl">MONTH</div></div>
+  <div class="st"><div class="sv" id="sArr"    style="color:#64ffda">0</div><div class="sl">ARRIVALS</div></div>
+  <div class="st"><div class="sv" id="sDep"    style="color:#f06292">0</div><div class="sl">DEPARTURES</div></div>
+  <div class="st"><div class="sv" id="sRoutes" style="color:#a78bfa">0</div><div class="sl">ROUTES</div></div>
+  <div class="st"><div class="sv" id="sIntl"   style="color:#ffb74d">0</div><div class="sl">INTL ROUTES</div></div>
+  <div class="st"><div class="sv" id="sTop"    style="color:#4fc3f7">—</div><div class="sl">BUSIEST ROUTE</div></div>
+  <div id="al-legend"></div>
+</div>
+
+<script>
+const MONTHS  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const ORD_LNG = -87.9073, ORD_LAT = 41.9742;
+const AVAIL   = [false,false,false,true,true,true,true,true,true,true,true,true];
+
+// Airline brand colors
+const AIRLINE_COLORS = {
+  'United':           '#4fc3f7',
+  'American':         '#ef5350',
+  'Delta Air Lines':  '#7c4dff',
+  'Southwest':        '#ff9800',
+  'Air Canada':       '#c62828',
+  'Envoy Air':        '#26c6da',
+  'SkyWest Airlines': '#66bb6a',
+  'Spirit':           '#ffee58',
+  'Frontier':         '#43a047',
+  'Alaska':           '#1565c0',
+  'Contour Aviation': '#ff7043',
+  'Japan Airlines':   '#e53935',
+  'ANA':              '#29b6f6',
+  'Cathay Pacific':   '#00897b',
+  'Lufthansa':        '#fdd835',
+  'British Airways':  '#1a237e',
+  'Air France':       '#0d47a1',
+  'KLM':              '#0277bd',
+  'Emirates':         '#d32f2f',
+  'Korean Air':       '#1565c0',
+};
+const AL_DEFAULT = '#8892b0';
+
+function alColor(name) { return AIRLINE_COLORS[name] || AL_DEFAULT; }
+
+let map, popup;
+let showArr   = true, showDep = true;
+let routeType = 'all';
+let colorMode = 'direction';
+let curAirline = 'all';
+let curMonth  = 10;
+let cache     = {};
+let curData   = null;
+
+// ── Month buttons ──────────────────────────────────────────────
+const mb = document.getElementById('monthBtns');
+MONTHS.forEach((m, i) => {
+  const b = document.createElement('button');
+  b.className = 'month-btn' + (i === curMonth ? ' active' : '');
+  b.textContent = m;
+  b.disabled = !AVAIL[i];
+  b.title = AVAIL[i] ? '' : 'Data unavailable (>365 days ago)';
+  b.onclick = () => { if (AVAIL[i]) setMonth(i); };
+  mb.appendChild(b);
+});
+
+// ── Init ───────────────────────────────────────────────────────
+async function init() {
+  const cfg = await fetch('/api/config').then(r => r.json());
+  mapboxgl.accessToken = cfg.mapboxToken;
+
+  map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/dark-v11',
+    center: [-87.91, 41.98],
+    zoom: 3.2,
+    projection: 'globe',
+  });
+
+  popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 14 });
+  map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+
+  map.on('load', () => {
+    map.setFog({
+      color: 'rgb(2,12,27)', 'high-color': 'rgb(8,22,50)',
+      'horizon-blend': 0.08, 'space-color': 'rgb(1,4,14)', 'star-intensity': 0.55,
+    });
+
+    map.addSource('arcs',     { type:'geojson', data: fc([]) });
+    map.addSource('airports', { type:'geojson', data: fc([]) });
+    map.addSource('ord',      { type:'geojson', data: fc([{
+      type:'Feature',
+      geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] },
+      properties:{ code:'ORD', name:"Chicago O'Hare International" }
+    }]) });
+
+    // Arc layers — color driven by feature property
+    map.addLayer({
+      id:'arcs-arr', type:'line', source:'arcs',
+      filter:['==',['get','dir'],'arr'],
+      paint:{
+        'line-color': '#64ffda',
+        'line-width': ['interpolate',['linear'],['get','count'], 1,0.7, 5,1.4, 20,2.5],
+        'line-opacity': 0.5,
+      },
+    });
+    map.addLayer({
+      id:'arcs-dep', type:'line', source:'arcs',
+      filter:['==',['get','dir'],'dep'],
+      paint:{
+        'line-color': '#f06292',
+        'line-width': ['interpolate',['linear'],['get','count'], 1,0.7, 5,1.4, 20,2.5],
+        'line-opacity': 0.5,
+      },
+    });
+
+    // Airport dots
+    map.addLayer({
+      id:'airports-circle', type:'circle', source:'airports',
+      paint:{
+        'circle-radius':       ['interpolate',['linear'],['get','total'], 1,4, 10,7, 40,12],
+        'circle-color':        ['case',['get','intl'],'#ffb74d','#4fc3f7'],
+        'circle-opacity':       0.88,
+        'circle-stroke-width':  1.2,
+        'circle-stroke-color': '#020c1b',
+      },
+    });
+    map.addLayer({
+      id:'airports-label', type:'symbol', source:'airports',
+      layout:{
+        'text-field':  ['get','code'],
+        'text-font':   ['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':    9,
+        'text-offset': [0,1.5],
+        'text-anchor': 'top',
+      },
+      paint:{
+        'text-color':      '#ccd6f6',
+        'text-halo-color': '#020c1b',
+        'text-halo-width':  1.2,
+      },
+    });
+
+    // ORD hub
+    map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':22,'circle-color':'#64ffda','circle-opacity':0.12,'circle-blur':1 } });
+    map.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':11,'circle-color':'#64ffda','circle-opacity':0.95,'circle-stroke-width':2,'circle-stroke-color':'#020c1b' } });
+    map.addLayer({ id:'ord-label', type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':11,'text-offset':[0,2],'text-anchor':'top' }, paint:{ 'text-color':'#64ffda','text-halo-color':'#020c1b','text-halo-width':2 } });
+
+    // Hover — airport dots
+    map.on('mouseenter', 'airports-circle', e => {
+      map.getCanvas().style.cursor = 'pointer';
+      const p = e.features[0].properties;
+      const coords = e.features[0].geometry.coordinates.slice();
+      const alRows = JSON.parse(p.airlineBreakdown || '[]')
+        .map(a => `<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(a.name)}"></div><span style="flex:1">${a.name}</span><span style="color:#e6f1ff;font-weight:bold">${a.count}</span></div>`)
+        .join('');
+      popup.setLngLat(coords).setHTML(`
+        <div class="pop-code" style="color:${p.intl?'#ffb74d':'#4fc3f7'}">${p.code}</div>
+        <div class="pop-sub">${p.name} &bull; ${p.intl?'International':'Domestic'}</div>
+        <div class="pop-row"><span>Arrivals to ORD</span>    <span class="pop-val" style="color:#64ffda">${p.arrivals}</span></div>
+        <div class="pop-row"><span>Departures from ORD</span><span class="pop-val" style="color:#f06292">${p.departures}</span></div>
+        <div class="pop-row"><span>Total flights</span>       <span class="pop-val">${p.total}</span></div>
+        ${alRows ? `<hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">AIRLINES</div>${alRows}` : ''}
+      `).addTo(map);
+    });
+    map.on('mouseleave', 'airports-circle', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+
+    // Hover — ORD hub
+    map.on('mouseenter', 'ord-circle', () => {
+      map.getCanvas().style.cursor = 'pointer';
+      if (!curData) return;
+      const fArr = filtered(curData.arrivals), fDep = filtered(curData.departures);
+      const alCounts = {};
+      [...fArr,...fDep].forEach(f => { if(f.airline) alCounts[f.airline]=(alCounts[f.airline]||0)+1; });
+      const top5 = Object.entries(alCounts).sort((a,b)=>b[1]-a[1]).slice(0,5)
+        .map(([n,c])=>`<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(n)}"></div><span style="flex:1">${n}</span><span style="color:#e6f1ff;font-weight:bold">${c}</span></div>`).join('');
+      popup.setLngLat([ORD_LNG,ORD_LAT]).setHTML(`
+        <div class="pop-code" style="color:#64ffda">ORD</div>
+        <div class="pop-sub">Chicago O'Hare International</div>
+        <div class="pop-row"><span>Arrivals (12h)</span>   <span class="pop-val" style="color:#64ffda">${fArr.length}</span></div>
+        <div class="pop-row"><span>Departures (12h)</span> <span class="pop-val" style="color:#f06292">${fDep.length}</span></div>
+        <div class="pop-row"><span>Intl arrivals</span>    <span class="pop-val" style="color:#ffb74d">${fArr.filter(f=>f.intl).length}</span></div>
+        <div class="pop-row"><span>Date sampled</span>     <span class="pop-val">${curData.date}</span></div>
+        <hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">TOP AIRLINES</div>${top5}
+      `).addTo(map);
+    });
+    map.on('mouseleave', 'ord-circle', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+
+    loadMonth(curMonth);
+  });
+}
+
+// ── Data loading ───────────────────────────────────────────────
+async function loadMonth(m) {
+  showLoading(true); hideErr();
+  curMonth = m;
+  try {
+    if (!cache[m]) {
+      const r = await fetch(`/api/flights/${m+1}`);
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      cache[m] = j;
+    }
+    curData = cache[m];
+    populateAirlineDropdown();
+    render();
+  } catch(e) {
+    showErr('Failed to load: ' + e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function populateAirlineDropdown() {
+  if (!curData) return;
+  const all = [...curData.arrivals, ...curData.departures];
+  const counts = {};
+  all.forEach(f => { if(f.airline) counts[f.airline] = (counts[f.airline]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+
+  const sel = document.getElementById('airlineSelect');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">All Airlines</option>';
+  sorted.forEach(([name, cnt]) => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = `${name} (${cnt})`;
+    sel.appendChild(o);
+  });
+  sel.value = sorted.find(([n])=>n===prev) ? prev : 'all';
+
+  buildLegend(sorted.slice(0,8));
+}
+
+function buildLegend(airlines) {
+  const lg = document.getElementById('al-legend');
+  lg.innerHTML = '';
+  airlines.forEach(([name]) => {
+    const c = alColor(name);
+    const chip = document.createElement('div');
+    chip.className = 'al-chip' + (curAirline === name ? ' selected' : '');
+    chip.style.setProperty('--c', c);
+    chip.innerHTML = `<div class="al-dot" style="background:${c}"></div>${name}`;
+    chip.onclick = () => setAirlineChip(name);
+    lg.appendChild(chip);
+  });
+}
+
+// ── Filtering ──────────────────────────────────────────────────
+function filtered(list) {
+  return list.filter(f => {
+    if (routeType === 'domestic')      return !f.intl;
+    if (routeType === 'international') return  f.intl;
+    return true;
+  }).filter(f => curAirline === 'all' || f.airline === curAirline);
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function render() {
+  if (!curData || !map.isStyleLoaded()) return;
+
+  const fArr = showArr ? filtered(curData.arrivals)   : [];
+  const fDep = showDep ? filtered(curData.departures) : [];
+
+  // Aggregate airports
+  const aptMap = {};
+  function agg(list, type) {
+    list.forEach(f => {
+      if (!aptMap[f.code]) aptMap[f.code] = { code:f.code, name:f.name, lat:f.lat, lon:f.lon, intl:f.intl, arrivals:0, departures:0, alCounts:{} };
+      aptMap[f.code][type]++;
+      if (f.airline) aptMap[f.code].alCounts[f.airline] = (aptMap[f.code].alCounts[f.airline]||0)+1;
+    });
+  }
+  agg(fArr, 'arrivals');
+  agg(fDep, 'departures');
+
+  // Build arcs — one per airport, colored by dominant airline or direction
+  const arcFeatures = [];
+  const arrCnt = countBy(fArr), depCnt = countBy(fDep);
+
+  Object.keys(arrCnt).forEach(code => {
+    const f = fArr.find(x=>x.code===code); if(!f) return;
+    const domAl = dominantAirline(fArr.filter(x=>x.code===code));
+    arcFeatures.push({ type:'Feature',
+      geometry:{ type:'LineString', coordinates:[[f.lon,f.lat],[ORD_LNG,ORD_LAT]] },
+      properties:{ dir:'arr', code, count:arrCnt[code], intl:f.intl, alColor:alColor(domAl) }
+    });
+  });
+  Object.keys(depCnt).forEach(code => {
+    const f = fDep.find(x=>x.code===code); if(!f) return;
+    const domAl = dominantAirline(fDep.filter(x=>x.code===code));
+    arcFeatures.push({ type:'Feature',
+      geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],[f.lon,f.lat]] },
+      properties:{ dir:'dep', code, count:depCnt[code], intl:f.intl, alColor:alColor(domAl) }
+    });
+  });
+
+  // Airport features
+  const aptFeatures = Object.values(aptMap).map(a => {
+    const alBreakdown = Object.entries(a.alCounts).sort((x,y)=>y[1]-x[1]).slice(0,6).map(([n,c])=>({name:n,count:c}));
+    return { type:'Feature',
+      geometry:{ type:'Point', coordinates:[a.lon,a.lat] },
+      properties:{
+        code:a.code, name:a.name, intl:a.intl,
+        arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures,
+        airlineBreakdown: JSON.stringify(alBreakdown),
+      }
+    };
+  });
+
+  map.getSource('arcs').setData(fc(arcFeatures));
+  map.getSource('airports').setData(fc(aptFeatures));
+  applyColorMode();
+  updateStats(fArr, fDep);
+}
+
+function applyColorMode() {
+  if (colorMode === 'airline') {
+    map.setPaintProperty('arcs-arr', 'line-color', ['get','alColor']);
+    map.setPaintProperty('arcs-dep', 'line-color', ['get','alColor']);
+    map.setPaintProperty('arcs-arr', 'line-opacity', 0.65);
+    map.setPaintProperty('arcs-dep', 'line-opacity', 0.65);
+  } else {
+    map.setPaintProperty('arcs-arr', 'line-color', '#64ffda');
+    map.setPaintProperty('arcs-dep', 'line-color', '#f06292');
+    map.setPaintProperty('arcs-arr', 'line-opacity', 0.5);
+    map.setPaintProperty('arcs-dep', 'line-opacity', 0.5);
+  }
+}
+
+function updateStats(fArr, fDep) {
+  const all    = [...fArr,...fDep];
+  const routes = new Set(all.map(f=>f.code));
+  const intlR  = new Set(all.filter(f=>f.intl).map(f=>f.code));
+  const counts = {};
+  all.forEach(f=>{ counts[f.code]=(counts[f.code]||0)+1; });
+  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('sMonth').textContent  = MONTHS[curMonth];
+  document.getElementById('sArr').textContent    = fArr.length.toLocaleString();
+  document.getElementById('sDep').textContent    = fDep.length.toLocaleString();
+  document.getElementById('sRoutes').textContent = routes.size;
+  document.getElementById('sIntl').textContent   = intlR.size;
+  document.getElementById('sTop').textContent    = top ? `${top[0]} (${top[1]})` : '—';
+}
+
+// ── Controls ───────────────────────────────────────────────────
+function setMonth(m) {
+  document.querySelectorAll('.month-btn').forEach((b,i)=>b.classList.toggle('active',i===m));
+  loadMonth(m);
+}
+function toggleType(t) {
+  if(t==='arr'){ showArr=!showArr; document.getElementById('btnArr').classList.toggle('on-arr',showArr); }
+  else         { showDep=!showDep; document.getElementById('btnDep').classList.toggle('on-dep',showDep); }
+  if(curData) render();
+}
+function setRoute(t) {
+  routeType=t;
+  ['btnAll','btnDom','btnIntl'].forEach(id=>document.getElementById(id).classList.remove('on-type'));
+  document.getElementById(t==='all'?'btnAll':t==='domestic'?'btnDom':'btnIntl').classList.add('on-type');
+  if(curData) render();
+}
+function setAirline(v) {
+  curAirline = v;
+  document.querySelectorAll('.al-chip').forEach(c=>{ c.classList.toggle('selected', c.textContent.trim()===v); });
+  if(curData) render();
+}
+function setAirlineChip(name) {
+  curAirline = (curAirline===name) ? 'all' : name;
+  document.getElementById('airlineSelect').value = curAirline;
+  document.querySelectorAll('.al-chip').forEach(c=>{
+    const n = c.textContent.trim();
+    c.classList.toggle('selected', n===curAirline);
+  });
+  if(curData) render();
+}
+function setColorMode(m) {
+  colorMode=m;
+  document.getElementById('btnColDir').classList.toggle('on-type', m==='direction');
+  document.getElementById('btnColAl').classList.toggle('on-al',   m==='airline');
+  if(curData) render();
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function fc(features) { return { type:'FeatureCollection', features }; }
+function countBy(list) { const m={}; list.forEach(f=>{ m[f.code]=(m[f.code]||0)+1; }); return m; }
+function dominantAirline(list) {
+  const c={}; list.forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+1; });
+  return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0] || '';
+}
+function showLoading(v) { document.getElementById('loading').classList.toggle('hidden',!v); }
+function showErr(msg)   { const b=document.getElementById('err-banner'); b.textContent=msg; b.style.display='block'; }
+function hideErr()      { document.getElementById('err-banner').style.display='none'; }
+
+init();
+</script>
+</body>
+</html>

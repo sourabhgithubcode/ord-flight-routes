@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Airport Operations Simulation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #020c1b;
+    color: #ccd6f6;
+    font-family: 'Segoe UI', monospace;
+    overflow: hidden;
+    height: 100vh;
+  }
+  #header {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    text-align: center;
+    z-index: 10;
+    padding: 14px;
+    background: linear-gradient(to bottom, rgba(2,12,27,0.95), transparent);
+  }
+  #header h1 {
+    font-size: 22px;
+    color: #64ffda;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px #64ffda88;
+  }
+  #header p {
+    font-size: 11px;
+    color: #8892b0;
+    letter-spacing: 2px;
+    margin-top: 3px;
+  }
+  canvas { display: block; }
+  #sidebar {
+    position: absolute;
+    right: 14px;
+    top: 80px;
+    width: 230px;
+    z-index: 10;
+  }
+  .panel {
+    background: rgba(2,12,27,0.85);
+    border: 1px solid #1d3557;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    backdrop-filter: blur(6px);
+  }
+  .panel-title {
+    font-size: 10px;
+    color: #64ffda;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #1d3557;
+    padding-bottom: 6px;
+  }
+  .airport-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+  .rank {
+    font-size: 10px;
+    color: #8892b0;
+    width: 16px;
+    text-align: right;
+  }
+  .code {
+    font-size: 12px;
+    font-weight: bold;
+    width: 34px;
+    color: #e6f1ff;
+  }
+  .bar-wrap {
+    flex: 1;
+    background: #0a1929;
+    border-radius: 3px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s ease;
+  }
+  .ops-num {
+    font-size: 9px;
+    color: #8892b0;
+    width: 36px;
+    text-align: right;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-box {
+    background: #0a1929;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+  }
+  .stat-val {
+    font-size: 18px;
+    color: #64ffda;
+    font-weight: bold;
+    text-shadow: 0 0 10px #64ffda66;
+  }
+  .stat-lbl {
+    font-size: 9px;
+    color: #8892b0;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+  #legend {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    z-index: 10;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    color: #8892b0;
+    margin-bottom: 5px;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  #tooltip {
+    position: absolute;
+    background: rgba(2,12,27,0.95);
+    border: 1px solid #64ffda44;
+    border-radius: 6px;
+    padding: 10px 14px;
+    pointer-events: none;
+    z-index: 20;
+    display: none;
+    font-size: 12px;
+    min-width: 160px;
+  }
+  #tooltip .tt-code { font-size: 18px; color: #64ffda; font-weight: bold; }
+  #tooltip .tt-name { font-size: 10px; color: #8892b0; margin-bottom: 6px; }
+  #tooltip .tt-stat { display: flex; justify-content: space-between; gap: 20px; }
+  #tooltip .tt-val { color: #e6f1ff; }
+  #counter {
+    position: absolute;
+    left: 14px;
+    top: 80px;
+    z-index: 10;
+  }
+  .ops-counter {
+    background: rgba(2,12,27,0.85);
+    border: 1px solid #64ffda33;
+    border-radius: 8px;
+    padding: 12px 16px;
+    backdrop-filter: blur(6px);
+    text-align: center;
+  }
+  .ops-counter .big {
+    font-size: 28px;
+    font-weight: bold;
+    color: #64ffda;
+    text-shadow: 0 0 20px #64ffda;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+  }
+  .ops-counter .lbl {
+    font-size: 9px;
+    color: #8892b0;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+  .pulse-ring {
+    animation: pulse 1.5s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>&#9992; US Airport Operations Simulation</h1>
+  <p>Live Flight Activity &bull; Takeoffs &amp; Landings &bull; 2025 Data</p>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="counter">
+  <div class="ops-counter">
+    <div class="big" id="liveOps">0</div>
+    <div class="lbl">SIMULATED OPS TODAY</div>
+  </div>
+</div>
+
+<div id="sidebar">
+  <div class="panel">
+    <div class="panel-title">Top Airports by Operations</div>
+    <div id="rankings"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Live Stats</div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="activePlanes">0</div>
+        <div class="stat-lbl">ACTIVE FLIGHTS</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="flightsPerMin">0</div>
+        <div class="stat-lbl">OPS / MIN</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="busiest">ORD</div>
+        <div class="stat-lbl">BUSIEST NOW</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="totalAirports">10</div>
+        <div class="stat-lbl">AIRPORTS</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#64ffda"></div> Major hub (&gt;700k ops)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4fc3f7"></div> Large hub (&gt;500k ops)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Medium hub</div>
+  <div class="legend-item">&#9992; = active flight simulation</div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+const airports = [
+  { code:'ORD', name:'Chicago O\'Hare',        ops:857000, lat:41.98, lon:-87.91, rank:1 },
+  { code:'DFW', name:'Dallas/Fort Worth',       ops:780000, lat:32.90, lon:-97.04, rank:2 },
+  { code:'ATL', name:'Hartsfield–Jackson',      ops:770000, lat:33.64, lon:-84.43, rank:3 },
+  { code:'DEN', name:'Denver International',    ops:650000, lat:39.86, lon:-104.67,rank:4 },
+  { code:'CLT', name:'Charlotte Douglas',       ops:620000, lat:35.21, lon:-80.94, rank:5 },
+  { code:'LAX', name:'Los Angeles Intl',        ops:600000, lat:33.94, lon:-118.41,rank:6 },
+  { code:'PHX', name:'Phoenix Sky Harbor',      ops:580000, lat:33.44, lon:-112.01,rank:7 },
+  { code:'LAS', name:'Harry Reid Intl',         ops:560000, lat:36.08, lon:-115.15,rank:8 },
+  { code:'IAH', name:'Houston Bush',            ops:540000, lat:29.99, lon:-95.34, rank:9 },
+  { code:'SEA', name:'Seattle-Tacoma',          ops:520000, lat:47.45, lon:-122.31,rank:10},
+];
+
+const barColors = ['#64ffda','#64ffda','#64ffda','#4fc3f7','#4fc3f7','#4fc3f7','#a78bfa','#a78bfa','#a78bfa','#a78bfa'];
+const maxOps = airports[0].ops;
+
+// Build rankings sidebar
+const rankDiv = document.getElementById('rankings');
+airports.forEach((a,i) => {
+  const pct = (a.ops / maxOps * 100).toFixed(0);
+  const opsK = (a.ops/1000).toFixed(0)+'k';
+  rankDiv.innerHTML += `
+    <div class="airport-row">
+      <span class="rank">${i+1}</span>
+      <span class="code" style="color:${barColors[i]}">${a.code}</span>
+      <div class="bar-wrap"><div class="bar" id="bar${a.code}" style="width:${pct}%;background:${barColors[i]};box-shadow:0 0 6px ${barColors[i]}66"></div></div>
+      <span class="ops-num">${opsK}</span>
+    </div>`;
+});
+
+// Canvas setup
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Geo to canvas
+function geoToXY(lat, lon) {
+  const x = (lon - (-125)) / ((-65) - (-125)) * W;
+  const y = (1 - (lat - 24) / (50 - 24)) * H;
+  return { x, y };
+}
+
+// Compute airport canvas positions
+airports.forEach(a => {
+  const p = geoToXY(a.lat, a.lon);
+  a.x = p.x; a.y = p.y;
+  a.pulsePhase = Math.random() * Math.PI * 2;
+  a.localOps = 0;
+  a.activityLevel = a.ops / maxOps;
+});
+
+// Flight paths simulation
+const planes = [];
+let totalOps = 0;
+let opsThisMinute = 0;
+let lastMinuteReset = Date.now();
+let frameCount = 0;
+
+function getColor(i) { return barColors[Math.min(i, barColors.length-1)]; }
+
+function getAirportColor(a) {
+  if (a.ops >= 700000) return '#64ffda';
+  if (a.ops >= 500000) return '#4fc3f7';
+  return '#a78bfa';
+}
+
+function getNodeRadius(a) {
+  return 6 + (a.ops / maxOps) * 18;
+}
+
+function spawnPlane() {
+  const fromIdx = Math.floor(Math.random() * airports.length);
+  let toIdx;
+  do { toIdx = Math.floor(Math.random() * airports.length); } while (toIdx === fromIdx);
+  const from = airports[fromIdx];
+  const to = airports[toIdx];
+  const speed = 0.003 + Math.random() * 0.003;
+  planes.push({
+    from, to,
+    t: 0,
+    speed,
+    color: getAirportColor(from),
+    trail: [],
+    trailLen: 12,
+  });
+  totalOps++;
+  opsThisMinute++;
+  from.localOps++;
+}
+
+// Quadratic bezier point
+function bezier(p0, p1, p2, t) {
+  const mt = 1 - t;
+  return {
+    x: mt*mt*p0.x + 2*mt*t*p1.x + t*t*p2.x,
+    y: mt*mt*p0.y + 2*mt*t*p1.y + t*t*p2.y,
+  };
+}
+
+function getControlPoint(from, to) {
+  const mx = (from.x + to.x) / 2;
+  const my = (from.y + to.y) / 2;
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  // Arc upward
+  return { x: mx - dy * 0.25, y: my - dist * 0.25 };
+}
+
+// US states rough outline paths (simplified key state borders)
+const usOutline = [
+  // Main continental outline (very simplified polygon)
+  [[-124.7,48.4],[-95.15,49.0],[-76.9,44.7],[-67.0,47.5],[-67.0,44.6],
+   [-70.7,42.0],[-75.0,35.0],[-75.5,35.0],[-81.0,31.0],[-85.0,29.9],
+   [-87.6,30.3],[-89.6,29.0],[-91.5,29.0],[-94.0,29.5],[-96.5,25.8],
+   [-97.1,26.0],[-99.0,26.4],[-100.0,28.0],[-104.0,29.3],[-106.5,31.8],
+   [-111.0,31.3],[-117.1,32.5],[-117.2,32.5],[-120.3,34.5],[-122.4,37.8],
+   [-124.2,40.4],[-124.7,48.4]]
+];
+
+function drawUSOutline() {
+  ctx.save();
+  ctx.strokeStyle = '#1d3557';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4,4]);
+  ctx.globalAlpha = 0.6;
+  usOutline.forEach(path => {
+    ctx.beginPath();
+    path.forEach(([lon,lat],i) => {
+      const {x,y} = geoToXY(lat, lon);
+      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// Grid lines (lat/lon)
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = '#0d2137';
+  ctx.lineWidth = 0.5;
+  ctx.globalAlpha = 0.4;
+  for (let lon = -120; lon <= -70; lon += 10) {
+    ctx.beginPath();
+    const {x:x1, y:y1} = geoToXY(24, lon);
+    const {x:x2, y:y2} = geoToXY(50, lon);
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  for (let lat = 25; lat <= 50; lat += 5) {
+    ctx.beginPath();
+    const {x:x1, y:y1} = geoToXY(lat, -125);
+    const {x:x2, y:y2} = geoToXY(lat, -65);
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawAirport(a, t) {
+  const r = getNodeRadius(a);
+  const col = getAirportColor(a);
+  const pulse = Math.sin(t * 0.002 + a.pulsePhase);
+
+  // Pulse rings
+  for (let i = 0; i < 3; i++) {
+    const phase = (t * 0.001 + i/3 + a.pulsePhase) % 1;
+    const pr = r + phase * r * 2.5;
+    const alpha = (1 - phase) * 0.3 * a.activityLevel;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, pr, 0, Math.PI*2);
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Glow
+  const grd = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, r*3);
+  grd.addColorStop(0, col + '44');
+  grd.addColorStop(1, 'transparent');
+  ctx.beginPath();
+  ctx.arc(a.x, a.y, r*3, 0, Math.PI*2);
+  ctx.fillStyle = grd;
+  ctx.fill();
+
+  // Core dot
+  ctx.beginPath();
+  ctx.arc(a.x, a.y, r, 0, Math.PI*2);
+  ctx.fillStyle = col;
+  ctx.shadowColor = col;
+  ctx.shadowBlur = 15 + pulse * 8;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(a.x, a.y, r * 0.5, 0, Math.PI*2);
+  ctx.fillStyle = '#020c1b';
+  ctx.fill();
+
+  // Label
+  ctx.font = `bold ${Math.max(10, r * 0.85)}px monospace`;
+  ctx.fillStyle = '#e6f1ff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#000';
+  ctx.shadowBlur = 4;
+  ctx.fillText(a.code, a.x, a.y + r + 14);
+  ctx.shadowBlur = 0;
+
+  // Ops number below label
+  ctx.font = `9px monospace`;
+  ctx.fillStyle = col;
+  ctx.fillText((a.ops/1000).toFixed(0)+'k ops/yr', a.x, a.y + r + 26);
+}
+
+function drawPlane(plane) {
+  const cp = getControlPoint(plane.from, plane.to);
+  const pos = bezier(plane.from, cp, plane.to, plane.t);
+
+  // Compute direction
+  const dt = 0.01;
+  const pos2 = bezier(plane.from, cp, plane.to, Math.min(plane.t + dt, 1));
+  const angle = Math.atan2(pos2.y - pos.y, pos2.x - pos.x);
+
+  // Trail
+  plane.trail.push({x: pos.x, y: pos.y});
+  if (plane.trail.length > plane.trailLen) plane.trail.shift();
+
+  // Draw trail
+  for (let i = 1; i < plane.trail.length; i++) {
+    const alpha = (i / plane.trail.length) * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(plane.trail[i-1].x, plane.trail[i-1].y);
+    ctx.lineTo(plane.trail[i].x, plane.trail[i].y);
+    ctx.strokeStyle = plane.color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw plane icon
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.rotate(angle);
+  ctx.font = '14px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = plane.color;
+  ctx.shadowBlur = 8;
+  ctx.fillText('✈', 0, 0);
+  ctx.restore();
+}
+
+function drawArcPath(from, to) {
+  const cp = getControlPoint(from, to);
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.quadraticCurveTo(cp.x, cp.y, to.x, to.y);
+  ctx.strokeStyle = '#1d3557';
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([3,6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+}
+
+// Tooltip
+canvas.addEventListener('mousemove', (e) => {
+  const tt = document.getElementById('tooltip');
+  let found = null;
+  airports.forEach(a => {
+    const dx = e.clientX - a.x, dy = e.clientY - a.y;
+    if (Math.sqrt(dx*dx+dy*dy) < getNodeRadius(a) + 5) found = a;
+  });
+  if (found) {
+    tt.style.display = 'block';
+    tt.style.left = (e.clientX + 14) + 'px';
+    tt.style.top = (e.clientY - 10) + 'px';
+    tt.innerHTML = `
+      <div class="tt-code">${found.code}</div>
+      <div class="tt-name">${found.name}</div>
+      <div class="tt-stat"><span>Rank</span><span class="tt-val">#${found.rank}</span></div>
+      <div class="tt-stat"><span>Annual Ops</span><span class="tt-val">${found.ops.toLocaleString()}</span></div>
+      <div class="tt-stat"><span>Daily Avg</span><span class="tt-val">${Math.round(found.ops/365).toLocaleString()}</span></div>
+      <div class="tt-stat"><span>Per Hour</span><span class="tt-val">${Math.round(found.ops/365/24)}</span></div>
+    `;
+  } else {
+    tt.style.display = 'none';
+  }
+});
+
+let simOps = 0;
+let lastSpawn = 0;
+let spawnInterval = 400; // ms between spawns
+
+function animate(t) {
+  requestAnimationFrame(animate);
+
+  ctx.fillStyle = '#020c1b';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+  drawUSOutline();
+
+  // Draw static arc paths (faint)
+  for (let i = 0; i < airports.length; i++) {
+    for (let j = i+1; j < airports.length; j++) {
+      if (Math.random() < 0.005) { // Only render a few each frame for perf
+        drawArcPath(airports[i], airports[j]);
+      }
+    }
+  }
+
+  // Spawn planes
+  if (t - lastSpawn > spawnInterval) {
+    const spawnCount = Math.floor(Math.random() * 2) + 1;
+    for (let s = 0; s < spawnCount; s++) spawnPlane();
+    simOps += spawnCount;
+    lastSpawn = t;
+  }
+
+  // Draw & update planes
+  for (let i = planes.length - 1; i >= 0; i--) {
+    const p = planes[i];
+    drawPlane(p);
+    p.t += p.speed;
+    if (p.t >= 1) planes.splice(i, 1);
+  }
+
+  // Draw airports on top
+  airports.forEach(a => drawAirport(a, t));
+
+  // Update stats
+  frameCount++;
+  if (frameCount % 30 === 0) {
+    document.getElementById('liveOps').textContent = simOps.toLocaleString();
+    document.getElementById('activePlanes').textContent = planes.length;
+
+    // Ops per minute
+    const now = Date.now();
+    if (now - lastMinuteReset >= 10000) {
+      document.getElementById('flightsPerMin').textContent = Math.round(opsThisMinute * 6);
+      opsThisMinute = 0;
+      lastMinuteReset = now;
+    }
+
+    // Busiest by local ops
+    const busiest = airports.reduce((a,b) => a.localOps > b.localOps ? a : b);
+    document.getElementById('busiest').textContent = busiest.code;
+  }
+}
+
+// Start animation
+requestAnimationFrame(animate);
+
+// Animate bar chart entrance
+setTimeout(() => {
+  airports.forEach(a => {
+    const bar = document.getElementById('bar' + a.code);
+    if (bar) bar.style.width = (a.ops / maxOps * 100).toFixed(0) + '%';
+  });
+}, 300);
+</script>
+</body>
+</html>
