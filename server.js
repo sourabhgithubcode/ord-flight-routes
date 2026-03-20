@@ -94,12 +94,30 @@ async function fetchWindow(from, to) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Fetch one window with automatic retry on 429
+async function fetchWindowSafe(from, to, retries = 3) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fetchWindow(from, to);
+    } catch (err) {
+      const is429 = err.response?.status === 429;
+      if (is429 && i < retries) {
+        const wait = (i + 1) * 4000;
+        console.log(`  ⚠ Rate limited — retrying in ${wait / 1000}s (attempt ${i + 1}/${retries})…`);
+        await sleep(wait);
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 // Fetch full 24-hour day (two 12-hour windows, sequential with delay)
 async function fetchDay(date) {
   console.log(`  ↓ Fetching 24h: ${date}`);
-  const am = await fetchWindow(`${date}T00:00`, `${date}T11:59`);
-  await sleep(1500);
-  const pm = await fetchWindow(`${date}T12:00`, `${date}T23:59`);
+  const am = await fetchWindowSafe(`${date}T00:00`, `${date}T11:59`);
+  await sleep(2000);
+  const pm = await fetchWindowSafe(`${date}T12:00`, `${date}T23:59`);
 
   const dedupe = flights => {
     const seen = new Set();
@@ -169,40 +187,76 @@ app.get('/api/flights/:month', async (req, res) => {
     return res.json(cache.get(month));
   }
 
-  const sampleDays = [5, 15, 25].map(d => `2025-${pad(month)}-${pad(d)}`);
-  const allArrivals = [], allDepartures = [];
-  const dailyTotals = {};
+  // Fallback chain: 3-day 24h → 1-day 24h → 1-day 12h
+  // Each level degrades gracefully if rate-limited, confidence reflects actual coverage
+  const strategies = [
+    {
+      label:    '72h across 3 sample days (5th, 15th, 25th) × 24h each',
+      days:     [5, 15, 25],
+      fullDay:  true,
+      confidence: null, // computed from variance
+    },
+    {
+      label:    '24h — 1 sample day (15th) × 24h',
+      days:     [15],
+      fullDay:  true,
+      confidence: 72,
+    },
+    {
+      label:    '12h — 1 sample day (15th) 06:00–17:59',
+      days:     [15],
+      fullDay:  false,
+      confidence: 55,
+    },
+  ];
 
-  try {
-    // Fetch each sample day sequentially with delay between days
-    for (const date of sampleDays) {
-      const day = await fetchDay(date);
-      await sleep(1500);
-      const arr = normalize(day.arrivals,   'arr', date);
-      const dep = normalize(day.departures, 'dep', date);
-      allArrivals.push(...arr);
-      allDepartures.push(...dep);
-      dailyTotals[date] = { arr: arr.length, dep: dep.length };
-      console.log(`    ${date}: arr=${arr.length} dep=${dep.length}`);
+  for (const strategy of strategies) {
+    const allArrivals = [], allDepartures = [], dailyTotals = {};
+    try {
+      for (const d of strategy.days) {
+        const date = `2025-${pad(month)}-${pad(d)}`;
+        let day;
+        if (strategy.fullDay) {
+          day = await fetchDay(date);
+          await sleep(2000);
+        } else {
+          // Original single 12h window
+          day = await fetchWindowSafe(`${date}T06:00`, `${date}T17:59`);
+          day = { arrivals: day.arrivals, departures: day.departures };
+        }
+        const arr = normalize(day.arrivals,   'arr', date);
+        const dep = normalize(day.departures, 'dep', date);
+        allArrivals.push(...arr);
+        allDepartures.push(...dep);
+        dailyTotals[date] = { arr: arr.length, dep: dep.length };
+        console.log(`    ${date}: arr=${arr.length} dep=${dep.length}`);
+      }
+
+      const confidence = strategy.confidence ?? calcConfidence(dailyTotals);
+      const sampleDays = strategy.days.map(d => `2025-${pad(month)}-${pad(d)}`);
+      const result = {
+        arrivals:    allArrivals,
+        departures:  allDepartures,
+        sampleDays,
+        dailyTotals,
+        coverage:    strategy.label,
+        confidence,
+      };
+
+      console.log(`✓ Month ${month} [${strategy.label}]: ${allArrivals.length} arr, ${allDepartures.length} dep | confidence=${confidence}%`);
+      cache.set(month, result);
+      return res.json(result);
+
+    } catch (err) {
+      const is429 = err.response?.status === 429;
+      console.warn(`  ↓ Strategy "${strategy.label}" failed${is429 ? ' (rate limit)' : ''} — trying next fallback…`);
+      if (strategy === strategies[strategies.length - 1]) {
+        // All strategies exhausted
+        console.error(`✗ Month ${month}: all strategies failed`);
+        return res.status(500).json({ error: err.message, detail: err.response?.data || err.message });
+      }
+      await sleep(3000); // brief pause before next strategy
     }
-
-    const confidence = calcConfidence(dailyTotals);
-    const result = {
-      arrivals:    allArrivals,
-      departures:  allDepartures,
-      sampleDays,
-      dailyTotals,
-      coverage:    '72h across 3 sample days (5th, 15th, 25th) × 24h each',
-      confidence,
-    };
-
-    console.log(`✓ Month ${month}: ${allArrivals.length} arr, ${allDepartures.length} dep | confidence=${confidence}%`);
-    cache.set(month, result);
-    res.json(result);
-  } catch (err) {
-    const detail = err.response?.data || err.message;
-    console.error(`✗ Month ${month}:`, detail);
-    res.status(500).json({ error: String(err.message), detail });
   }
 });
 
