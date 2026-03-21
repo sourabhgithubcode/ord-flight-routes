@@ -1,3 +1,4 @@
 node_modules/
 .env
 airports_coords.json
+.flight_cache.json

@@ -5,6 +5,7 @@ const express = require('express');
 const axios   = require('axios');
 const cors    = require('cors');
 const path    = require('path');
+const fs      = require('fs');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -144,6 +145,13 @@ function normalize(flights, side, date) {
     .map(f => {
       const apt = side === 'arr' ? f.departure.airport : f.arrival.airport;
       const [lat, lon] = AIRPORT_COORDS[apt.iata];
+      // Extract scheduled hour at ORD (arrival time for arrivals, departure time for departures)
+      const timeStr = side === 'arr'
+        ? (f.arrival?.scheduledTime?.local  || f.arrival?.scheduledTime?.utc  || '')
+        : (f.departure?.scheduledTime?.local || f.departure?.scheduledTime?.utc || '');
+      const hourMatch = timeStr.match(/[T ](\d{2}):/);
+      const hour = hourMatch ? parseInt(hourMatch[1], 10) : -1;
+
       return {
         code:    apt.iata,
         name:    apt.name || apt.iata,
@@ -153,6 +161,7 @@ function normalize(flights, side, date) {
         airline: f.airline?.name || '',
         flight:  f.number || '',
         date,
+        hour,
       };
     });
 }
@@ -167,16 +176,69 @@ function calcConfidence(dailyTotals) {
   return Math.round(Math.min(97, Math.max(50, 100 - cv * 2.5)));
 }
 
-// ── In-memory cache ───────────────────────────────────────────────────────────
+// ── Persistent disk cache ─────────────────────────────────────────────────────
+const CACHE_FILE = path.join(__dirname, '.flight_cache.json');
 const cache = new Map();
+
+function loadDiskCache() {
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      const raw = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+      Object.entries(raw).forEach(([k, v]) => cache.set(isNaN(k) ? k : Number(k), v));
+      console.log(`  Disk cache loaded — ${cache.size} entries`);
+    }
+  } catch (e) { console.warn('  Disk cache load failed:', e.message); }
+}
+
+function saveDiskCache() {
+  try {
+    const obj = {};
+    cache.forEach((v, k) => { obj[k] = v; });
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(obj));
+  } catch (e) { console.warn('  Disk cache save failed:', e.message); }
+}
+
+loadDiskCache();
 
 // ── Token endpoint ────────────────────────────────────────────────────────────
 app.get('/api/config', (_req, res) => {
   res.json({ mapboxToken: MAPBOX_TOKEN });
 });
 
-// ── Main flight data endpoint — 3 sample days × 24h ──────────────────────────
-// Sample days: 5th, 15th, 25th of each month (covers weekday variety)
+// ── Sample day picker: 4 weekdays + 3 weekends + 1 holiday = 8 days ──────────
+// One peak/holiday per month acts as the special traffic marker
+const MONTH_HOLIDAYS = {
+  4: 18,  // Good Friday (day before Easter weekend)
+  5: 23,  // Friday before Memorial Day
+  6: 19,  // Juneteenth (federal holiday)
+  7:  4,  // Independence Day
+  8: 29,  // Friday before Labor Day weekend
+  9:  1,  // Labor Day (Monday)
+  10: 13, // Columbus Day (Monday)
+  11: 26, // Day before Thanksgiving (busiest travel day of year)
+  12: 26, // Day after Christmas
+};
+
+function getSampleDays(year, month) {
+  const holidayDay = MONTH_HOLIDAYS[month];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const weekdays = [], weekends = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    if (d === holidayDay) continue;
+    const dow = new Date(year, month - 1, d).getDay(); // 0=Sun 6=Sat
+    if (dow >= 1 && dow <= 5) weekdays.push(d);
+    else weekends.push(d);
+  }
+  // Pick 4 weekdays evenly spread across month
+  const wdPos = [0.10, 0.35, 0.60, 0.85].map(p => weekdays[Math.floor(p * weekdays.length)]);
+  // Pick 3 weekend days evenly spread
+  const wePos = [0.10, 0.50, 0.85].map(p => weekends[Math.floor(p * weekends.length)]);
+  const picked = new Set([...(holidayDay ? [holidayDay] : []), ...wdPos, ...wePos]);
+  return [...picked].filter(Boolean).sort((a, b) => a - b).slice(0, 8);
+}
+
+// ── Main flight data endpoint — 8 sample days × 24h ──────────────────────────
+// 4 weekdays + 3 weekend days + 1 holiday/peak day, evenly spread across month
 app.get('/api/flights/:month', async (req, res) => {
   const month = parseInt(req.params.month, 10);
   if (isNaN(month) || month < 1 || month > 12) {
@@ -187,17 +249,17 @@ app.get('/api/flights/:month', async (req, res) => {
     return res.json(cache.get(month));
   }
 
-  // Fallback chain: 3-day 24h → 1-day 24h → 1-day 12h
-  // Each level degrades gracefully if rate-limited, confidence reflects actual coverage
+  // Primary: 3 representative days (quota-efficient); secondary fallbacks for rate limits
+  // To use 8-day sampling uncomment the first strategy and bump quota plan
   const strategies = [
     {
-      label:    '72h across 3 sample days (5th, 15th, 25th) × 24h each',
+      label:    '3 sample days (5th, 15th, 25th) × 24h',
       days:     [5, 15, 25],
       fullDay:  true,
       confidence: null, // computed from variance
     },
     {
-      label:    '24h — 1 sample day (15th) × 24h',
+      label:    '24h — 1 sample day (15th)',
       days:     [15],
       fullDay:  true,
       confidence: 72,
@@ -245,31 +307,163 @@ app.get('/api/flights/:month', async (req, res) => {
 
       console.log(`✓ Month ${month} [${strategy.label}]: ${allArrivals.length} arr, ${allDepartures.length} dep | confidence=${confidence}%`);
       cache.set(month, result);
+      saveDiskCache();
       return res.json(result);
 
     } catch (err) {
-      const is429 = err.response?.status === 429;
+      const status = err.response?.status;
+      const body   = err.response?.data;
+      const isQuota = status === 402 || status === 403 ||
+        (body && typeof body === 'object' && JSON.stringify(body).toLowerCase().includes('quota'));
+      const is429   = status === 429;
+
+      if (isQuota) {
+        console.error(`✗ Month ${month}: AeroDataBox monthly quota exceeded`);
+        return res.status(402).json({
+          error: 'quota_exceeded',
+          message: 'AeroDataBox monthly API quota has been reached. Quota resets on the 1st of next month. Cached months still load instantly.',
+        });
+      }
+
       console.warn(`  ↓ Strategy "${strategy.label}" failed${is429 ? ' (rate limit)' : ''} — trying next fallback…`);
       if (strategy === strategies[strategies.length - 1]) {
-        // All strategies exhausted
         console.error(`✗ Month ${month}: all strategies failed`);
-        return res.status(500).json({ error: err.message, detail: err.response?.data || err.message });
+        return res.status(500).json({ error: err.message, detail: body || err.message });
       }
-      await sleep(3000); // brief pause before next strategy
+      await sleep(3000);
     }
   }
+});
+
+// ── Historical route data (2020–2024) via BTS T-100 ──────────────────────────
+// BTS T-100 Domestic Market (All Carriers): dataset sg63-ksby
+// BTS International Passengers:             dataset xgub-n9bw
+app.get('/api/historical/:year/:month', async (req, res) => {
+  const year  = parseInt(req.params.year,  10);
+  const month = parseInt(req.params.month, 10);
+  if (isNaN(year)  || year  < 2019 || year  > 2024) return res.status(400).json({ error: 'Year must be 2019–2024 for BTS historical' });
+  if (isNaN(month) || month < 1    || month > 12  ) return res.status(400).json({ error: 'Month must be 1–12' });
+
+  const cacheKey = `hist-${year}-${month}`;
+  if (cache.has(cacheKey)) { console.log(`Cache hit — hist ${year}/${month}`); return res.json(cache.get(cacheKey)); }
+
+  console.log(`Fetching BTS historical ${year}/${month}…`);
+  const arrivals = [], departures = [];
+
+  // ── Domestic T-100 routes ──────────────────────────────────────────────────
+  let domFetched = false;
+  try {
+    const depRes = await axios.get('https://data.transportation.gov/resource/sg63-ksby.json', {
+      params: { $where: `origin='ORD' AND year=${year} AND month=${month}`, $limit: 1000,
+        $select: 'dest,unique_carrier_name,departures_performed' },
+      headers: { Accept: 'application/json' }, timeout: 14000,
+    });
+    const arrRes = await axios.get('https://data.transportation.gov/resource/sg63-ksby.json', {
+      params: { $where: `dest='ORD' AND year=${year} AND month=${month}`, $limit: 1000,
+        $select: 'origin,unique_carrier_name,departures_performed' },
+      headers: { Accept: 'application/json' }, timeout: 14000,
+    });
+
+    depRes.data.forEach(r => {
+      if (!r.dest || !AIRPORT_COORDS[r.dest]) return;
+      const [lat,lon] = AIRPORT_COORDS[r.dest];
+      departures.push({ code:r.dest, name:r.dest, lat, lon, country:'US', intl:false,
+        airline:r.unique_carrier_name||'', count:parseInt(r.departures_performed||'1'),
+        hour:-1, date:`${year}-${pad(month)}` });
+    });
+    arrRes.data.forEach(r => {
+      if (!r.origin || !AIRPORT_COORDS[r.origin]) return;
+      const [lat,lon] = AIRPORT_COORDS[r.origin];
+      arrivals.push({ code:r.origin, name:r.origin, lat, lon, country:'US', intl:false,
+        airline:r.unique_carrier_name||'', count:parseInt(r.departures_performed||'1'),
+        hour:-1, date:`${year}-${pad(month)}` });
+    });
+    domFetched = depRes.data.length > 0 || arrRes.data.length > 0;
+    console.log(`  Domestic: ${arrRes.data.length} arr routes, ${depRes.data.length} dep routes`);
+  } catch (e) {
+    console.warn(`  Domestic BTS fetch failed: ${e.message}`);
+  }
+
+  // ── International (xgub-n9bw) ─────────────────────────────────────────────
+  let intlFetched = false;
+  try {
+    const { data: intlData } = await axios.get('https://data.transportation.gov/resource/xgub-n9bw.json', {
+      params: { usg_apt:'ORD', year:String(year), month:String(month),
+        $limit:'2000', $select:'fg_apt,carrier,total,scheduled' },
+      headers: { Accept: 'application/json' }, timeout: 14000,
+    });
+
+    // Aggregate passengers by foreign airport, then convert to approx flights
+    const intlByApt = {};
+    intlData.forEach(r => {
+      if (!r.fg_apt || !AIRPORT_COORDS[r.fg_apt]) return;
+      if (!intlByApt[r.fg_apt]) intlByApt[r.fg_apt] = { total:0, carrier:r.carrier||'' };
+      intlByApt[r.fg_apt].total += parseInt(r.total||'0');
+    });
+
+    Object.entries(intlByApt).forEach(([code, d]) => {
+      const [lat,lon] = AIRPORT_COORDS[code];
+      // ~180 pax/intl flight — split bidirectional equally
+      const flights = Math.max(1, Math.round(d.total / 180 / 2));
+      const base = { code, name:code, lat, lon, country:'', intl:true,
+        airline:d.carrier, count:flights, hour:-1, date:`${year}-${pad(month)}` };
+      arrivals.push({ ...base });
+      departures.push({ ...base });
+    });
+    intlFetched = intlData.length > 0;
+    console.log(`  International: ${Object.keys(intlByApt).length} routes`);
+  } catch (e) {
+    console.warn(`  International BTS fetch failed: ${e.message}`);
+  }
+
+  if (!domFetched && !intlFetched) {
+    return res.status(503).json({ error: 'BTS data unavailable for this period — try again later or check dataset IDs' });
+  }
+
+  // Merge duplicate codes per direction (multiple carriers on same route)
+  function mergeRoutes(list) {
+    const map = {};
+    list.forEach(f => {
+      if (!map[f.code]) { map[f.code] = { ...f }; }
+      else {
+        map[f.code].count += (f.count || 1);
+        if (f.airline && !map[f.code].airline.includes(f.airline.split(' ')[0])) {
+          map[f.code].airline += `, ${f.airline.split(' ')[0]}`;
+        }
+      }
+    });
+    return Object.values(map);
+  }
+
+  const result = {
+    arrivals:   mergeRoutes(arrivals),
+    departures: mergeRoutes(departures),
+    year, month,
+    source:      'BTS',
+    note:        'BTS T-100 aggregate data — monthly totals, no time-of-day detail.',
+    coverage:    `BTS T-100 ${domFetched?'Domestic + ':''}${intlFetched?'International':''} (monthly aggregate)`,
+    confidence:  95,
+    sampleDays:  [`${year}-${pad(month)}-01`],
+    dailyTotals: {},
+  };
+
+  console.log(`✓ BTS historical ${year}/${month}: ${result.arrivals.length} arr routes, ${result.departures.length} dep routes`);
+  cache.set(cacheKey, result);
+  res.json(result);
 });
 
 // ── BTS cross-validation endpoint (data.transportation.gov) ──────────────────
 // Dataset xgub-n9bw = International Report Passengers (ORD intl routes, official)
 const btsCache = new Map();
 
-app.get('/api/bts/:month', async (req, res) => {
+app.get('/api/bts/:year/:month', async (req, res) => {
+  const year  = parseInt(req.params.year,  10) || 2025;
   const month = parseInt(req.params.month, 10);
   if (isNaN(month) || month < 1 || month > 12) {
     return res.status(400).json({ error: 'Month must be 1–12' });
   }
-  if (btsCache.has(month)) return res.json(btsCache.get(month));
+  const btsKey = `${year}-${month}`;
+  if (btsCache.has(btsKey)) return res.json(btsCache.get(btsKey));
 
   try {
     const { data } = await axios.get(
@@ -277,7 +471,7 @@ app.get('/api/bts/:month', async (req, res) => {
       {
         params: {
           usg_apt: 'ORD',
-          year:    '2025',
+          year:    String(year),
           month:   String(month),
           $limit:  '2000',
           $select: 'fg_apt,carrier,type,total,scheduled,charter',
@@ -317,8 +511,9 @@ app.get('/api/bts/:month', async (req, res) => {
       note:            'International passengers only. BTS typically lags 3–6 months.',
     };
 
-    console.log(`✓ BTS month ${month}: ${totalPax.toLocaleString()} intl passengers, ${result.routeCount} routes`);
-    btsCache.set(month, result);
+    result.year = year;
+    console.log(`✓ BTS ${year}/${month}: ${totalPax.toLocaleString()} intl passengers, ${result.routeCount} routes`);
+    btsCache.set(btsKey, result);
     res.json(result);
   } catch (err) {
     console.error('BTS fetch error:', err.message);

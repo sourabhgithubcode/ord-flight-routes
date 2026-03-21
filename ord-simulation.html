@@ -6,109 +6,379 @@
 <title>Chicago ORD – Flight Routes 2025</title>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto:wght@400;500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg:        #000000;
+  --bg-card:   #0d0d0d;
+  --bg-module: #111111;
+  --border:    #222222;
+  --border-hi: #4D4D4D;
+  --text:      #FFFFFF;
+  --text-muted:#AAAAAA;
+  --blue:      #41B6E6;
+  --red:       #E4002B;
+  --green:     #2E8540;
+  --amber:     #F5A623;
+  --purple:    #7C3AED;
+}
+/* ── Reset & Base ── */
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#020c1b; color:#ccd6f6; font-family:'Segoe UI',monospace; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Roboto', system-ui, sans-serif;
+  height:100vh; display:flex; flex-direction:column; overflow:hidden;
+}
 
 /* ── Header ── */
-#header { background:rgba(2,12,27,.97); border-bottom:1px solid #1d3557; padding:8px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; z-index:20; flex-shrink:0; }
-.hdr-left h1 { font-size:15px; color:#64ffda; letter-spacing:2px; }
-.hdr-left p  { font-size:9px; color:#8892b0; letter-spacing:1.5px; margin-top:2px; }
-#controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.ctrl-group { display:flex; align-items:center; gap:6px; }
-.ctrl-lbl { font-size:9px; color:#8892b0; letter-spacing:1px; text-transform:uppercase; white-space:nowrap; }
+#header {
+  background:#0d0d0d; border-bottom:2px solid var(--blue);
+  padding:11px 22px; display:flex; align-items:center;
+  justify-content:space-between; z-index:20; flex-shrink:0;
+}
+.hdr-title {
+  font-family:'Montserrat', sans-serif;
+  font-size:18px; color:var(--blue); letter-spacing:3px; font-weight:800;
+}
+.hdr-sub { font-size:11px; color:var(--text-muted); letter-spacing:1px; margin-top:4px; font-family:'Roboto',sans-serif; }
+.hdr-right { display:flex; align-items:center; gap:12px; }
 
-.month-btn { background:#0a1929; border:1px solid #1d3557; color:#8892b0; padding:3px 8px; border-radius:3px; cursor:pointer; font-size:10px; font-family:monospace; transition:all .2s; }
-.month-btn.active { background:#64ffda18; border-color:#64ffda; color:#64ffda; }
-.month-btn:hover:not(.active):not(:disabled) { border-color:#4fc3f7; color:#4fc3f7; }
-.month-btn:disabled { opacity:0.28; cursor:not-allowed; }
+/* ── Main layout ── */
+#main { flex:1; display:flex; overflow:hidden; }
 
-.tog { background:#0a1929; border:1px solid #1d3557; color:#8892b0; padding:4px 11px; border-radius:20px; cursor:pointer; font-size:10px; font-family:monospace; transition:all .2s; }
-.tog.on-arr  { border-color:#64ffda; color:#64ffda;  background:#64ffda18; }
-.tog.on-dep  { border-color:#f06292; color:#f06292;  background:#f0629218; }
-.tog.on-type { border-color:#4fc3f7; color:#4fc3f7;  background:#4fc3f718; }
-.tog.on-al   { border-color:#ffb74d; color:#ffb74d;  background:#ffb74d18; }
+/* ── Left sidebar ── */
+#sidebar {
+  width:242px; background:#0a0a0a; border-right:1px solid var(--border);
+  overflow-y:auto; flex-shrink:0; display:flex; flex-direction:column;
+}
+#sidebar::-webkit-scrollbar { width:3px; }
+#sidebar::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:2px; }
 
-select#airlineSelect { background:#0a1929; border:1px solid #1d3557; color:#ccd6f6; padding:4px 8px; border-radius:4px; font-size:10px; font-family:monospace; cursor:pointer; outline:none; max-width:155px; }
-select#airlineSelect:focus { border-color:#4fc3f7; }
+.ctrl-section { padding:16px 16px 14px; border-bottom:1px solid var(--border); }
+.ctrl-section-title {
+  font-family:'Montserrat', sans-serif;
+  font-size:11px; color:var(--blue); letter-spacing:2.5px;
+  text-transform:uppercase; font-weight:700; margin-bottom:13px;
+  border-left:3px solid var(--blue); padding-left:8px;
+}
+.ctrl-sub-label {
+  font-size:10px; color:var(--text-muted); letter-spacing:1.5px;
+  text-transform:uppercase; margin-bottom:6px; margin-top:12px;
+  font-family:'Roboto',sans-serif; font-weight:500;
+}
+.ctrl-sub-label:first-of-type { margin-top:0; }
+.ctrl-row { display:flex; gap:5px; flex-wrap:wrap; }
 
-/* ── Map area ── */
+/* ── Buttons ── */
+.tog {
+  background:#111; border:1px solid var(--border-hi); color:var(--text-muted);
+  padding:7px 13px; border-radius:5px; cursor:pointer;
+  font-size:12px; font-family:'Roboto',sans-serif; font-weight:500;
+  transition:all .15s; white-space:nowrap;
+}
+.tog:hover:not(:disabled) { border-color:var(--blue); color:var(--blue); background:#41B6E610; }
+.tog.on-arr   { border-color:var(--blue);  color:var(--blue);  background:#41B6E618; }
+.tog.on-dep   { border-color:var(--red);   color:var(--red);   background:#E4002B18; }
+.tog.on-type  { border-color:var(--blue);  color:var(--blue);  background:#41B6E618; }
+.tog.on-al    { border-color:var(--green); color:var(--green); background:#2E854018; }
+.tog.on-view  { border-color:var(--amber); color:var(--amber); background:#F5A62318; }
+.tog:disabled { opacity:0.28; cursor:not-allowed; }
+
+.month-btn {
+  background:#111; border:1px solid var(--border); color:var(--text-muted);
+  padding:7px 2px; border-radius:4px; cursor:pointer;
+  font-size:11px; font-family:'JetBrains Mono',monospace; font-weight:400;
+  transition:all .15s; text-align:center;
+}
+.month-btn.active {
+  background:#41B6E618; border-color:var(--blue);
+  color:var(--blue); font-weight:600;
+}
+.month-btn.in-range { background:#41B6E60a; border-color:#41B6E644; color:#ccc; }
+.month-btn:hover:not(.active):not(:disabled) { border-color:var(--blue); color:var(--blue); }
+.month-btn:disabled { opacity:0.22; cursor:not-allowed; }
+
+.year-btn {
+  background:#111; border:1px solid var(--border); color:var(--text-muted);
+  padding:8px 0; border-radius:4px; cursor:pointer;
+  font-size:12px; font-family:'JetBrains Mono',monospace; font-weight:600;
+  transition:all .15s; text-align:center;
+}
+.year-btn.active { background:#41B6E618; border-color:var(--blue); color:var(--blue); }
+.year-btn:hover:not(.active) { border-color:var(--text-muted); color:var(--text); }
+
+select#airlineSelect {
+  background:#111; border:1px solid var(--border-hi); color:var(--text);
+  padding:9px 11px; border-radius:5px;
+  font-size:12px; font-family:'Roboto',sans-serif;
+  cursor:pointer; outline:none; width:100%;
+}
+select#airlineSelect:focus { border-color:var(--blue); }
+
+/* Time-of-day grid */
+.time-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.time-grid .tog { text-align:center; padding:9px 4px; }
+.time-grid .tog .sub { font-size:9px; opacity:.6; display:block; margin-top:3px; font-family:'JetBrains Mono',monospace; }
+.time-grid .tog:first-child { grid-column:1/-1; }
+
+/* Legend */
+.legend-row { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-muted); font-family:'Roboto',sans-serif; }
+.legend-line { width:28px; height:3px; border-radius:2px; flex-shrink:0; }
+.legend-dot  { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+
+/* ── Map ── */
 #map-wrap { flex:1; position:relative; overflow:hidden; }
 #map { position:absolute; inset:0; }
 
 /* ── Insights panel ── */
 #insights {
-  position:absolute; right:14px; top:10px; bottom:10px;
-  width:268px; z-index:15;
-  background:rgba(2,10,24,0.93); border:1px solid #1d3557;
-  border-radius:10px; backdrop-filter:blur(10px);
+  position:absolute; right:14px; top:12px; bottom:12px;
+  width:308px; z-index:15;
+  background:rgba(10,10,10,0.96); border:1px solid var(--border-hi);
+  border-top:2px solid var(--blue);
+  border-radius:8px; backdrop-filter:blur(16px);
   display:flex; flex-direction:column; overflow:hidden;
   transition:transform .28s cubic-bezier(.4,0,.2,1), opacity .28s;
 }
-#insights.hidden { transform:translateX(296px); opacity:0; pointer-events:none; }
+#insights.hidden { transform:translateX(330px); opacity:0; pointer-events:none; }
 
-#ins-header { padding:10px 12px 8px; border-bottom:1px solid #1d3557; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
-#ins-header span { font-size:9px; color:#64ffda; letter-spacing:2px; }
-#ins-close { background:none; border:none; color:#8892b0; cursor:pointer; font-size:14px; line-height:1; padding:2px 4px; }
-#ins-close:hover { color:#ccd6f6; }
+#ins-header { padding:13px 16px 11px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+#ins-header span { font-family:'Montserrat',sans-serif; font-size:11px; color:var(--blue); letter-spacing:2.5px; font-weight:700; }
+#ins-close { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; line-height:1; padding:2px 6px; }
+#ins-close:hover { color:var(--text); }
 
-#ins-body { flex:1; overflow-y:auto; padding:10px 12px; display:flex; flex-direction:column; gap:14px; }
+#ins-body { flex:1; overflow-y:auto; padding:14px 15px; display:flex; flex-direction:column; gap:16px; }
 #ins-body::-webkit-scrollbar { width:3px; }
-#ins-body::-webkit-scrollbar-thumb { background:#1d3557; border-radius:2px; }
+#ins-body::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:2px; }
 
-.ins-section { display:flex; flex-direction:column; gap:6px; }
-.ins-label { font-size:8px; color:#8892b0; letter-spacing:1.5px; text-transform:uppercase; padding-bottom:4px; border-bottom:1px solid #0d1f35; }
+.ins-section { display:flex; flex-direction:column; gap:7px; }
+.ins-label {
+  font-family:'Montserrat',sans-serif;
+  font-size:9px; color:var(--text-muted); letter-spacing:2px;
+  text-transform:uppercase; padding-bottom:6px;
+  border-bottom:1px solid var(--border); font-weight:700;
+}
 
-/* Narrative */
-#ins-narrative { font-size:11px; line-height:1.65; color:#ccd6f6; }
-#ins-narrative strong { color:#64ffda; }
-#ins-narrative em { color:#ffb74d; font-style:normal; }
+#ins-narrative { font-size:13px; line-height:1.78; color:#e0e0e0; font-family:'Roboto',sans-serif; }
+#ins-narrative strong { color:var(--blue); font-weight:700; }
+#ins-narrative em { color:var(--amber); font-style:normal; }
 
-/* Balance bar */
-#ins-balance { height:22px; border-radius:4px; overflow:hidden; display:flex; }
-#bal-arr { background:#64ffda; transition:width .4s ease; }
-#bal-dep { background:#f06292; transition:width .4s ease; flex:1; }
-#bal-labels { display:flex; justify-content:space-between; font-size:9px; margin-top:3px; }
-#bal-arr-lbl { color:#64ffda; }
-#bal-dep-lbl { color:#f06292; }
+#ins-balance { height:26px; border-radius:4px; overflow:hidden; display:flex; }
+#bal-arr { background:var(--blue); transition:width .4s ease; }
+#bal-dep { background:var(--red); transition:width .4s ease; flex:1; }
+#bal-labels { display:flex; justify-content:space-between; font-size:11px; margin-top:5px; font-weight:600; font-family:'JetBrains Mono',monospace; }
+#bal-arr-lbl { color:var(--blue); }
+#bal-dep-lbl { color:var(--red); }
 
-/* Charts */
 .ins-canvas { width:100%; display:block; }
-
-/* Trend dots */
-.trend-wrap { position:relative; }
-#trend-loading { position:absolute; right:0; top:0; font-size:8px; color:#8892b0; letter-spacing:1px; }
+#trend-loading { font-size:9px; color:var(--text-muted); letter-spacing:1px; text-align:right; margin-top:2px; }
 
 /* ── Stats bar ── */
-#statsbar { background:rgba(2,12,27,.97); border-top:1px solid #1d3557; padding:6px 16px; display:flex; gap:20px; align-items:center; flex-shrink:0; flex-wrap:wrap; }
+#statsbar {
+  background:#0a0a0a; border-top:1px solid var(--border);
+  padding:10px 22px; display:flex; gap:32px;
+  align-items:center; justify-content:center; flex-shrink:0; flex-wrap:wrap;
+}
 .st { text-align:center; }
-.sv { font-size:15px; font-weight:bold; font-variant-numeric:tabular-nums; }
-.sl { font-size:8px; color:#8892b0; letter-spacing:1px; margin-top:1px; }
+.sv {
+  font-family:'JetBrains Mono', monospace;
+  font-size:22px; font-weight:600; font-variant-numeric:tabular-nums;
+}
+.sl {
+  font-family:'Montserrat', sans-serif;
+  font-size:9px; color:var(--text-muted); letter-spacing:2px;
+  margin-top:3px; text-transform:uppercase; font-weight:700;
+}
 #al-legend { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-left:auto; }
-.al-chip { display:flex; align-items:center; gap:5px; font-size:9px; color:#8892b0; cursor:pointer; padding:2px 6px; border-radius:3px; border:1px solid transparent; transition:all .15s; }
-.al-chip:hover { border-color:#1d3557; color:#ccd6f6; }
+.al-chip {
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:var(--text-muted); cursor:pointer;
+  padding:4px 10px; border-radius:4px; border:1px solid transparent;
+  transition:all .15s; font-family:'Roboto',sans-serif;
+}
+.al-chip:hover { border-color:var(--border-hi); color:var(--text); }
 .al-chip.selected { border-color:var(--c); color:var(--c); }
-.al-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.al-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+
+/* ── Source badge ── */
+#src-badge {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px; padding:5px 11px; border-radius:4px; letter-spacing:1.5px; font-weight:600;
+}
+#src-badge.live { background:#41B6E615; border:1px solid #41B6E655; color:var(--blue); }
+#src-badge.bts  { background:#F5A62315; border:1px solid #F5A62355; color:var(--amber); }
 
 /* ── Loading / error ── */
-#loading { position:fixed; inset:0; background:rgba(2,12,27,0.88); display:flex; align-items:center; justify-content:center; z-index:200; flex-direction:column; gap:14px; }
-#loading p { color:#64ffda; font-size:12px; letter-spacing:2px; }
-.spinner { width:36px; height:36px; border:3px solid #1d3557; border-top-color:#64ffda; border-radius:50%; animation:spin .8s linear infinite; }
+#loading {
+  position:fixed; inset:0; background:rgba(0,0,0,0.92);
+  display:flex; align-items:center; justify-content:center;
+  z-index:200; flex-direction:column; gap:20px;
+}
+#loading p {
+  font-family:'Montserrat',sans-serif;
+  color:var(--blue); font-size:14px; letter-spacing:4px; font-weight:700;
+}
+.spinner { width:42px; height:42px; border:3px solid #222; border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 #loading.hidden { display:none; }
-#err-banner { display:none; position:absolute; top:50px; left:50%; transform:translateX(-50%); background:#1a0a0a; border:1px solid #f0629244; color:#f06292; padding:8px 20px; border-radius:6px; font-size:11px; z-index:50; }
+#err-banner {
+  display:none; position:absolute; top:50px; left:50%; transform:translateX(-50%);
+  background:#1a0000; border:1px solid #E4002B66; color:var(--red);
+  padding:10px 24px; border-radius:5px; font-size:13px; z-index:50;
+  font-family:'Roboto',sans-serif;
+}
 
 /* ── Mapbox popup ── */
-.mapboxgl-popup-content { background:rgba(2,12,27,0.97)!important; border:1px solid #64ffda33!important; color:#ccd6f6!important; font-family:'Segoe UI',monospace!important; font-size:12px!important; padding:10px 14px!important; border-radius:7px!important; min-width:200px!important; box-shadow:0 4px 24px rgba(0,0,0,0.6)!important; }
+.mapboxgl-popup-content {
+  background:rgba(10,10,10,0.97)!important; border:1px solid #41B6E644!important;
+  border-top:2px solid var(--blue)!important;
+  color:var(--text)!important; font-family:'Roboto',sans-serif!important;
+  font-size:13px!important; padding:14px 17px!important;
+  border-radius:7px!important; min-width:228px!important;
+  box-shadow:0 6px 32px rgba(0,0,0,0.8)!important;
+}
 .mapboxgl-popup-tip { display:none!important; }
-.pop-code { font-size:17px; font-weight:bold; margin-bottom:2px; }
-.pop-sub  { font-size:10px; color:#8892b0; margin-bottom:7px; }
-.pop-row  { display:flex; justify-content:space-between; gap:14px; margin-top:3px; font-size:11px; }
-.pop-val  { color:#e6f1ff; font-weight:bold; }
-.pop-divider { border:none; border-top:1px solid #1d3557; margin:6px 0; }
-.pop-al-row { font-size:10px; display:flex; align-items:center; gap:6px; margin-top:3px; }
-.pop-al-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.pop-code { font-family:'Montserrat',sans-serif; font-size:21px; font-weight:800; margin-bottom:3px; }
+.pop-sub  { font-size:11px; color:var(--text-muted); margin-bottom:10px; }
+.pop-row  { display:flex; justify-content:space-between; gap:14px; margin-top:5px; font-size:12px; }
+.pop-val  { color:var(--text); font-family:'JetBrains Mono',monospace; font-weight:600; }
+.pop-divider { border:none; border-top:1px solid var(--border); margin:9px 0; }
+.pop-al-row { font-size:11px; display:flex; align-items:center; gap:7px; margin-top:5px; }
+.pop-al-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .mapboxgl-ctrl-bottom-right,.mapboxgl-ctrl-bottom-left { display:none; }
+
+/* ── Fare Intel ── */
+#fare-legend {
+  position:absolute; bottom:16px; left:16px; z-index:10;
+  background:rgba(5,5,8,0.92); border:1px solid #1D9E7544;
+  border-top:2px solid #1D9E75; border-radius:6px; padding:11px 14px;
+  min-width:210px; font-family:'Roboto',sans-serif;
+}
+.fare-legend-title { font-size:9px; letter-spacing:1.5px; color:#AAAAAA; margin-bottom:6px; }
+.fare-legend-row { display:flex; align-items:center; gap:8px; margin-top:5px; font-size:11px; color:#ccc; }
+.fare-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+#fare-explorer {
+  position:absolute; top:0; right:0; width:320px; height:100%; z-index:21;
+  background:rgba(10,10,14,0.97); border-left:1px solid #1D9E7522;
+  overflow-y:auto; padding:20px 18px; font-family:'Roboto',sans-serif;
+  transform:translateX(100%); transition:transform .3s ease;
+}
+#fare-explorer.open { transform:translateX(0); }
+#fare-explorer-close {
+  position:absolute; top:14px; right:14px;
+  background:none; border:none; color:#AAAAAA; font-size:18px; cursor:pointer;
+}
+#fare-explorer-close:hover { color:#fff; }
+.fex-route { font-family:'Montserrat',sans-serif; font-size:20px; font-weight:800; color:#1D9E75; margin-bottom:2px; }
+.fex-city  { font-size:12px; color:#AAAAAA; margin-bottom:14px; }
+.fex-stat-row { display:flex; justify-content:space-between; margin:6px 0; font-size:12px; border-bottom:1px solid #111; padding-bottom:6px; }
+.fex-label { color:#AAAAAA; }
+.fex-val   { font-family:'JetBrains Mono',monospace; font-weight:700; color:#fff; font-size:13px; }
+.fex-hero  { font-size:28px; font-family:'Montserrat',sans-serif; font-weight:900; color:#1D9E75; margin:10px 0 2px; }
+.fex-section-title { font-size:9px; letter-spacing:1.5px; color:#AAAAAA; margin:14px 0 6px; }
+.fex-sparkline-wrap { position:relative; }
+.fex-month-labels { display:flex; justify-content:space-between; font-size:8px; color:#666; margin-top:3px; }
+.fex-month-fare  { display:flex; justify-content:space-between; font-size:8px; color:#888; margin-top:1px; }
+.fex-al-row { display:flex; align-items:center; gap:6px; margin-top:4px; font-size:11px; }
+.fex-al-bar { height:7px; border-radius:2px; }
+.fex-comp-badge { display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:4px 9px; border-radius:4px; font-weight:600; }
+.fex-saving-box { background:#1D9E7515; border:1px solid #1D9E7533; border-radius:5px; padding:10px 12px; margin:12px 0; }
+.fex-saving-num { font-size:22px; font-family:'Montserrat',sans-serif; font-weight:900; color:#1D9E75; }
+.fex-narrative { font-size:11px; color:#AAAAAA; line-height:1.7; margin:12px 0; }
+.fex-alert-btn {
+  width:100%; padding:10px; border:1px solid #1D9E7566; background:transparent;
+  color:#1D9E75; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600;
+  margin-top:8px; transition:background .15s;
+}
+.fex-alert-btn:hover { background:#1D9E7515; }
+/* Fare Story in insights */
+#sec-fare-story { border-left:2px solid #1D9E75; padding-left:10px; }
+.fare-gap-hero { font-size:22px; font-weight:900; font-family:'Montserrat',sans-serif; color:#1D9E75; }
+.fare-comp-bar-wrap { display:flex; height:14px; border-radius:4px; overflow:hidden; margin:8px 0; }
+.fare-warning-card {
+  background:#BA751712; border:1px solid #BA751733; border-radius:5px;
+  padding:10px 12px; margin-top:8px; font-size:11px; color:#ccc; line-height:1.7;
+}
+#learn-why-expand { display:none; font-size:10px; color:#AAAAAA; line-height:1.6; margin-top:7px; border-top:1px solid #333; padding-top:7px; }
+
+/* ── Compare panel ── */
+#compare-panel {
+  position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
+  z-index:15; width:560px; max-width:calc(100vw - 260px);
+  background:rgba(6,6,10,0.97); border:1px solid #333;
+  border-radius:8px; font-family:'Roboto',sans-serif; overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,0.8);
+}
+#compare-panel.hidden { display:none; }
+#compare-panel-hdr {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:9px 14px; border-bottom:1px solid #222;
+  font-size:9px; letter-spacing:2px; color:#AAAAAA;
+  background:linear-gradient(90deg, rgba(79,195,247,0.07) 0%, rgba(239,83,80,0.07) 100%);
+  border-top:2px solid transparent;
+  border-image:linear-gradient(90deg,#4fc3f7,#ef5350) 1;
+}
+#compare-panel-body { display:flex; }
+.cmp-col { flex:1; padding:13px 15px; border-right:1px solid #1e1e1e; }
+.cmp-col:last-child { border-right:none; }
+.cmp-airline-name { font-family:'Montserrat',sans-serif; font-weight:800; font-size:16px; margin-bottom:9px; }
+.cmp-stat { display:flex; justify-content:space-between; margin:5px 0; font-size:11px; border-bottom:1px solid #111; padding-bottom:5px; }
+.cmp-label { color:#AAAAAA; }
+.cmp-val   { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; }
+.cmp-winner { font-size:8px; padding:1px 5px; border-radius:3px; margin-left:4px; }
+
+/* ── Primary airline hero section ── */
+#sidebar-primary {
+  padding:16px 16px 18px; border-bottom:2px solid #2a2a2a;
+  background:linear-gradient(180deg,#0f0f12 0%,#0a0a0a 100%);
+}
+.primary-title {
+  font-family:'Montserrat',sans-serif; font-size:10px; font-weight:800;
+  letter-spacing:2.5px; text-transform:uppercase; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.primary-title .pt-ua { color:#4fc3f7; }
+.primary-title .pt-sep { color:#444; }
+.primary-title .pt-aa { color:#ef5350; }
+.btn-ua {
+  background:#0d1f2e !important; border:1px solid #4fc3f766 !important;
+  color:#4fc3f7 !important; font-weight:600 !important;
+}
+.btn-ua:hover, .btn-ua.on-al {
+  background:#4fc3f720 !important; border-color:#4fc3f7 !important;
+}
+.btn-aa {
+  background:#2e0d0d !important; border:1px solid #ef535066 !important;
+  color:#ef5350 !important; font-weight:600 !important;
+}
+.btn-aa:hover, .btn-aa.on-al {
+  background:#ef535020 !important; border-color:#ef5350 !important;
+}
+.btn-compare {
+  background:#13101e !important; border:1px solid #a78bfa55 !important;
+  color:#a78bfa !important; font-size:11px !important; font-weight:600 !important;
+}
+.btn-compare.on-type { background:#a78bfa20 !important; border-color:#a78bfa !important; }
+
+/* ── Secondary filter sections ── */
+.ctrl-section.secondary { opacity:0.72; }
+.ctrl-section.secondary .ctrl-section-title {
+  font-size:10px; color:var(--text-muted); border-left-color:var(--border-hi);
+  letter-spacing:1.5px;
+}
+.ctrl-section.secondary:hover { opacity:1; transition:opacity .2s; }
+
+/* ── Footer legend ── */
+#footer-legend {
+  background:#070707; border-top:1px solid #1a1a1a;
+  padding:7px 22px; display:flex; align-items:center; gap:20px;
+  flex-shrink:0; flex-wrap:wrap; font-size:11px; color:var(--text-muted);
+  font-family:'Roboto',sans-serif;
+}
+.fl-item { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.fl-line  { width:22px; height:3px; border-radius:2px; flex-shrink:0; }
+.fl-dot   { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+#footer-legend #al-legend { margin-left:auto; }
 </style>
 </head>
 <body>
@@ -116,44 +386,131 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
 <div id="loading"><div class="spinner"></div><p>LOADING FLIGHT DATA...</p></div>
 <div id="err-banner"></div>
 
-<!-- Header -->
+<!-- Header: title + badge + insights toggle -->
 <div id="header">
   <div class="hdr-left">
-    <h1>&#9992; CHICAGO O'HARE (ORD) — 2025 FLIGHT ROUTES</h1>
-    <p>REAL AERODATABOX DATA &bull; ARRIVALS &amp; DEPARTURES &bull; 12-HR WINDOW &bull; 15TH OF EACH MONTH</p>
+    <div class="hdr-title">&#9992;&nbsp; CHICAGO O'HARE &nbsp;|&nbsp; ORD FLIGHT ROUTES</div>
+    <div class="hdr-sub"><span style="color:#4fc3f7;font-weight:700">UA</span> vs <span style="color:#ef5350;font-weight:700">AA</span> · FARE &amp; ROUTE INTELLIGENCE · ORD 2025 · APR–DEC</div>
   </div>
-  <div id="controls">
-    <div class="ctrl-group">
-      <span class="ctrl-lbl">Month:</span>
-      <div id="monthBtns" style="display:flex;gap:3px;"></div>
-    </div>
-    <div class="ctrl-group">
-      <span class="ctrl-lbl">Show:</span>
-      <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')">&#8595; Arrivals</button>
-      <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')">&#8593; Departures</button>
-    </div>
-    <div class="ctrl-group">
-      <span class="ctrl-lbl">Routes:</span>
-      <button class="tog on-type" id="btnAll"  onclick="setRoute('all')">All</button>
-      <button class="tog"         id="btnDom"  onclick="setRoute('domestic')">Domestic</button>
-      <button class="tog"         id="btnIntl" onclick="setRoute('international')">Intl</button>
-    </div>
-    <div class="ctrl-group">
-      <span class="ctrl-lbl">Airline:</span>
-      <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
-    </div>
-    <div class="ctrl-group">
-      <span class="ctrl-lbl">Color:</span>
-      <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')">Direction</button>
-      <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')">By Airline</button>
-    </div>
-    <button class="tog on-type" id="btnInsights" onclick="toggleInsights()" style="margin-left:4px">&#9998; Insights</button>
+  <div class="hdr-right">
+    <span id="src-badge" class="live">LIVE DATA</span>
+    <button class="tog on-type" id="btnInsights" onclick="toggleInsights()">&#9998; Insights</button>
   </div>
 </div>
 
-<!-- Map + insights panel -->
-<div id="map-wrap">
+<!-- Main: sidebar + map -->
+<div id="main">
+
+  <!-- ── Left Control Sidebar ── -->
+  <div id="sidebar">
+
+    <!-- ── PRIMARY: UA vs AA ── -->
+    <div id="sidebar-primary">
+      <div class="primary-title">
+        <span class="pt-ua">&#9992; UNITED</span>
+        <span class="pt-sep">vs</span>
+        <span class="pt-aa">AMERICAN &#9992;</span>
+      </div>
+      <div class="ctrl-row" style="margin-bottom:8px">
+        <button class="tog btn-ua" id="btnUA" onclick="quickSelectAirline('United')"   style="flex:1;padding:10px 6px;font-size:12px">&#9992; United</button>
+        <button class="tog btn-aa" id="btnAA" onclick="quickSelectAirline('American')" style="flex:1;padding:10px 6px;font-size:12px">&#9992; American</button>
+      </div>
+      <button class="tog btn-compare" id="btnCompare" onclick="toggleCompareMode()" style="width:100%;padding:10px;font-size:12px;margin-bottom:10px">&#9878; Compare UA vs AA</button>
+      <div class="ctrl-sub-label" style="margin-top:0">Fare Intelligence</div>
+      <button class="tog" id="btnFareIntel" onclick="toggleFareMode()" style="width:100%;font-size:12px;padding:9px">&#36; Fare Intel · Competition &amp; Pricing</button>
+    </div>
+
+    <!-- ── FILTERS (secondary) ── -->
+
+    <!-- TIME PERIOD -->
+    <div class="ctrl-section secondary">
+      <div class="ctrl-section-title">&#128197; Time Period · 2025</div>
+      <div class="ctrl-sub-label" id="rangeLabel">Select a month</div>
+      <div id="monthBtns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;"></div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:5px;line-height:1.4">Tap once to select · Tap second for range · Double-tap for single</div>
+    </div>
+
+    <!-- TRAFFIC -->
+    <div class="ctrl-section secondary">
+      <div class="ctrl-section-title">&#9992; Traffic &amp; Route</div>
+      <div id="row-arr-dep" class="ctrl-row">
+        <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arrivals</button>
+        <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Departures</button>
+      </div>
+      <div class="ctrl-sub-label">Route Type</div>
+      <div class="ctrl-row">
+        <button class="tog on-type" id="btnAll"  onclick="setRoute('all')" style="flex:1">All</button>
+        <button class="tog"         id="btnDom"  onclick="setRoute('domestic')" style="flex:1">Dom</button>
+        <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
+      </div>
+    </div>
+
+    <!-- AIRLINE SELECT -->
+    <div class="ctrl-section secondary">
+      <div class="ctrl-section-title">&#9992; All Airlines</div>
+      <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
+    </div>
+
+    <!-- TIME OF DAY -->
+    <div class="ctrl-section secondary">
+      <div class="ctrl-section-title">&#9200; Time of Day</div>
+      <div class="time-grid">
+        <button class="tog on-type" id="btnTAll"   onclick="setTimeFilter('all')">All Day</button>
+        <button class="tog"         id="btnTMorn"  onclick="setTimeFilter('morning')">Morning<span class="sub">6 – 11 AM</span></button>
+        <button class="tog"         id="btnTAftn"  onclick="setTimeFilter('afternoon')">Afternoon<span class="sub">12 – 5 PM</span></button>
+        <button class="tog"         id="btnTEvng"  onclick="setTimeFilter('evening')">Evening<span class="sub">6 – 11 PM</span></button>
+        <button class="tog"         id="btnTNight" onclick="setTimeFilter('night')">Night<span class="sub">12 – 5 AM</span></button>
+      </div>
+    </div>
+
+    <!-- VISUALIZATION -->
+    <div class="ctrl-section secondary">
+      <div class="ctrl-section-title">&#127758; Visualization</div>
+      <div class="ctrl-sub-label">View Level</div>
+      <div class="ctrl-row">
+        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
+        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
+        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
+      </div>
+      <div id="row-color-label" class="ctrl-sub-label">Color Arcs By</div>
+      <div id="row-color-btns" class="ctrl-row">
+        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">Direction</button>
+        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">Airline</button>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- Map + insights panel -->
+  <div id="map-wrap">
   <div id="map"></div>
+
+  <!-- UA vs AA Compare Panel -->
+  <div id="compare-panel" class="hidden">
+    <div id="compare-panel-hdr">
+      <span>ORD AIRLINE COMPARISON · UA vs AA</span>
+      <button onclick="toggleCompareMode()" style="background:none;border:none;color:#AAAAAA;cursor:pointer;font-size:14px">&#215;</button>
+    </div>
+    <div id="compare-panel-body">
+      <div class="cmp-col" id="cmp-ua"></div>
+      <div class="cmp-col" id="cmp-aa"></div>
+    </div>
+  </div>
+
+  <!-- Fare Intel legend -->
+  <div id="fare-legend" style="display:none">
+    <div class="fare-legend-title">FARE INTEL · COMPETITION LEVEL</div>
+    <div class="fare-legend-row"><div class="fare-legend-dot" style="background:#1D9E75"></div>Price war — 2+ airlines compete</div>
+    <div class="fare-legend-row"><div class="fare-legend-dot" style="background:#BA7517"></div>Partial — 1 legacy + low-cost</div>
+    <div class="fare-legend-row"><div class="fare-legend-dot" style="background:#c0392b"></div>Monopoly — expect high fares</div>
+    <div class="fare-legend-row"><div class="fare-legend-dot" style="background:#555"></div>Insufficient data</div>
+  </div>
+
+  <!-- Fare Explorer drawer -->
+  <div id="fare-explorer">
+    <button id="fare-explorer-close" onclick="closeFareExplorer()">&#215;</button>
+    <div id="fex-content"></div>
+  </div>
 
   <!-- Insights panel -->
   <div id="insights">
@@ -162,6 +519,12 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
       <button id="ins-close" onclick="toggleInsights()">&#215;</button>
     </div>
     <div id="ins-body">
+
+      <!-- Fare Story — only visible when fareMode is on -->
+      <div class="ins-section" id="sec-fare-story" style="display:none">
+        <div class="ins-label" style="color:#1D9E75">&#36; Fare Story</div>
+        <div id="fare-story-content"></div>
+      </div>
 
       <div class="ins-section">
         <div class="ins-label">What you're looking at</div>
@@ -199,9 +562,9 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
             <div id="conf-bar-wrap" style="flex:1;height:8px;background:#0d1f35;border-radius:4px;overflow:hidden">
               <div id="conf-bar" style="height:100%;border-radius:4px;transition:width .5s ease;width:0%"></div>
             </div>
-            <span id="conf-pct" style="font-size:12px;font-weight:bold;color:#64ffda;min-width:36px;text-align:right">—</span>
+            <span id="conf-pct" style="font-size:15px;font-weight:bold;color:#64ffda;min-width:40px;text-align:right">—</span>
           </div>
-          <div id="conf-coverage" style="font-size:9px;color:#8892b0;line-height:1.6"></div>
+          <div id="conf-coverage" style="font-size:11px;color:#8892b0;line-height:1.6"></div>
           <div id="conf-daily" style="margin-top:6px"></div>
         </div>
       </div>
@@ -209,23 +572,44 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
       <div class="ins-section" id="sec-bts">
         <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
           <span>BTS Cross-Validation</span>
-          <span id="bts-badge" style="font-size:8px;padding:1px 5px;border-radius:3px;background:#1d3557;color:#8892b0">loading</span>
+          <span id="bts-badge" style="font-size:10px;padding:2px 7px;border-radius:3px;background:#1d3557;color:#8892b0">loading</span>
         </div>
-        <div id="ins-bts" style="font-size:10px;color:#8892b0;line-height:1.7">Fetching official BTS data…</div>
+        <div id="ins-bts" style="font-size:11px;color:#8892b0;line-height:1.7">Fetching official BTS data…</div>
       </div>
 
     </div>
-  </div>
-</div>
+  </div><!-- /insights -->
+  </div><!-- /map-wrap -->
+</div><!-- /main -->
 
 <!-- Stats bar -->
 <div id="statsbar">
-  <div class="st"><div class="sv" id="sMonth"  style="color:#64ffda">—</div><div class="sl">MONTH</div></div>
-  <div class="st"><div class="sv" id="sArr"    style="color:#64ffda">0</div><div class="sl">ARRIVALS</div></div>
-  <div class="st"><div class="sv" id="sDep"    style="color:#f06292">0</div><div class="sl">DEPARTURES</div></div>
-  <div class="st"><div class="sv" id="sRoutes" style="color:#a78bfa">0</div><div class="sl">ROUTES</div></div>
-  <div class="st"><div class="sv" id="sIntl"   style="color:#ffb74d">0</div><div class="sl">INTL ROUTES</div></div>
-  <div class="st"><div class="sv" id="sTop"    style="color:#4fc3f7">—</div><div class="sl">BUSIEST ROUTE</div></div>
+  <div class="st"><div class="sv" id="sMonth"  style="color:#41B6E6">—</div><div class="sl">PERIOD</div></div>
+  <div class="st"><div class="sv" id="sArr"    style="color:#41B6E6">0</div><div class="sl" id="slArr">ARRIVALS</div></div>
+  <div class="st"><div class="sv" id="sDep"    style="color:#E4002B">0</div><div class="sl" id="slDep">DEPARTURES</div></div>
+  <div class="st"><div class="sv" id="sRoutes" style="color:#2E8540">0</div><div class="sl">ROUTES</div></div>
+  <div class="st"><div class="sv" id="sIntl"   style="color:#F5A623">0</div><div class="sl">INTL ROUTES</div></div>
+  <div class="st"><div class="sv" id="sTop"    style="color:#FFFFFF">—</div><div class="sl">BUSIEST ROUTE</div></div>
+  <div class="st" id="st-contested"  style="display:none"><div class="sv" id="sContested"  style="color:#1D9E75">0</div><div class="sl">CONTESTED</div></div>
+  <div class="st" id="st-fare-comp"  style="display:none"><div class="sv" id="sFareComp"   style="color:#1D9E75">$—</div><div class="sl">AVG FARE (COMPETED)</div></div>
+  <div class="st" id="st-fare-mono"  style="display:none"><div class="sv" id="sFareMono"   style="color:#c0392b">$—</div><div class="sl">AVG FARE (MONOPOLY)</div></div>
+  <div class="st" id="st-saving"     style="display:none"><div class="sv" id="sSaving"     style="color:#1D9E75">$—</div><div class="sl">TRAVELER SAVING</div></div>
+</div>
+
+<!-- Footer legend — single line -->
+<div id="footer-legend">
+  <span class="fl-item"><div class="fl-line" style="background:#64ffda"></div>Arrivals</span>
+  <span class="fl-item"><div class="fl-line" style="background:#f06292"></div>Departures</span>
+  <span class="fl-item"><div class="fl-dot"  style="background:#4fc3f7"></div>Domestic airport</span>
+  <span class="fl-item"><div class="fl-dot"  style="background:#ffb74d"></div>International airport</span>
+  <span class="fl-item"><div class="fl-dot"  style="background:#a78bfa"></div>State/Region node</span>
+  <span class="fl-item" style="color:#555">·</span>
+  <span class="fl-item" style="color:#1D9E75">&#9670;</span>
+  <span class="fl-item" style="color:#555;font-size:10px">Contested &nbsp;</span>
+  <span class="fl-item" style="color:#BA7517">&#9670;</span>
+  <span class="fl-item" style="color:#555;font-size:10px">Partial &nbsp;</span>
+  <span class="fl-item" style="color:#c0392b">&#9670;</span>
+  <span class="fl-item" style="color:#555;font-size:10px">Monopoly</span>
   <div id="al-legend"></div>
 </div>
 
@@ -233,7 +617,6 @@ select#airlineSelect:focus { border-color:#4fc3f7; }
 // ── Constants ────────────────────────────────────────────────────────────────
 const MONTHS  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const ORD_LNG = -87.9073, ORD_LAT = 41.9742;
-const AVAIL   = [false,false,false,true,true,true,true,true,true,true,true,true];
 
 const AIRLINE_COLORS = {
   'United':'#4fc3f7','American':'#ef5350','Delta Air Lines':'#7c4dff',
@@ -247,6 +630,121 @@ const AIRLINE_COLORS = {
 const AL_DEFAULT = '#8892b0';
 const REGION = { EU:['LHR','CDG','FRA','AMS','ZRH','MAD','BCN','FCO','VIE','MUC','STR','CPH','DUB','BRU','KEF','BEG'], AS:['NRT','HND','HKG','ICN','NGO','KIX','PVG','AUH','DOH','DXB','IST'], CA:['YYZ','YUL','YVR','YOW','YQB','YYC','YWG'], LA:['MEX','CUN','GDL','PTY','SJO','GUA','PVR','SJD','PUJ','CZM','MBJ','NAS','UVF','SXM','STT'] };
 
+// ── Airport → State mapping (US domestic) ───────────────────────────────────
+const AIRPORT_STATE = {
+  MDW:'IL',RFD:'IL',
+  LAX:'CA',SFO:'CA',SJC:'CA',SAN:'CA',OAK:'CA',BUR:'CA',LGB:'CA',ONT:'CA',SNA:'CA',SMF:'CA',FAT:'CA',SBA:'CA',MRY:'CA',PSP:'CA',
+  DFW:'TX',IAH:'TX',HOU:'TX',AUS:'TX',SAT:'TX',DAL:'TX',ELP:'TX',LBB:'TX',AMA:'TX',CRP:'TX',MAF:'TX',
+  MCO:'FL',MIA:'FL',FLL:'FL',TPA:'FL',JAX:'FL',RSW:'FL',PBI:'FL',TLH:'FL',PNS:'FL',VPS:'FL',DAB:'FL',SRQ:'FL',
+  JFK:'NY',LGA:'NY',BUF:'NY',ROC:'NY',SYR:'NY',ALB:'NY',
+  EWR:'NJ',ACY:'NJ',
+  ATL:'GA',SAV:'GA',
+  DEN:'CO',COS:'CO',GJT:'CO',ASE:'CO',
+  LAS:'NV',RNO:'NV',
+  PHX:'AZ',TUS:'AZ',
+  SEA:'WA',GEG:'WA',
+  PDX:'OR',EUG:'OR',MFR:'OR',
+  DTW:'MI',GRR:'MI',LAN:'MI',FNT:'MI',AZO:'MI',MBS:'MI',
+  MSP:'MN',DLH:'MN',RST:'MN',
+  STL:'MO',MCI:'MO',SGF:'MO',
+  CLT:'NC',RDU:'NC',GSO:'NC',AVL:'NC',ILM:'NC',
+  BNA:'TN',MEM:'TN',TYS:'TN',CHA:'TN',
+  PHL:'PA',PIT:'PA',MDT:'PA',ABE:'PA',AVP:'PA',
+  CMH:'OH',CLE:'OH',CVG:'OH',DAY:'OH',TOL:'OH',CAK:'OH',
+  IND:'IN',SBN:'IN',EVV:'IN',FWA:'IN',
+  MKE:'WI',MSN:'WI',GRB:'WI',ATW:'WI',
+  DSM:'IA',CID:'IA',DBQ:'IA',
+  ICT:'KS',
+  OMA:'NE',LNK:'NE',
+  FSD:'SD',RAP:'SD',
+  FAR:'ND',BIS:'ND',
+  BZN:'MT',MSO:'MT',BIL:'MT',
+  BOI:'ID',
+  SLC:'UT',
+  ABQ:'NM',SAF:'NM',
+  OKC:'OK',TUL:'OK',
+  LIT:'AR',XNA:'AR',
+  MSY:'LA',BTR:'LA',SHV:'LA',
+  JAN:'MS',GPT:'MS',
+  BHM:'AL',HSV:'AL',MOB:'AL',
+  CHS:'SC',CAE:'SC',MYR:'SC',GSP:'SC',
+  DCA:'VA',IAD:'VA',ORF:'VA',RIC:'VA',ROA:'VA',
+  BWI:'MD',
+  BOS:'MA',
+  BDL:'CT',
+  PVD:'RI',
+  MHT:'NH',
+  PWM:'ME',
+  BTV:'VT',
+  SDF:'KY',LEX:'KY',
+  CRW:'WV',
+  HNL:'HI',OGG:'HI',KOA:'HI',LIH:'HI',
+  ANC:'AK',FAI:'AK',JNU:'AK',
+  SJU:'PR',
+};
+
+const STATE_CENTERS = {
+  AL:[-86.9023,32.3617],AK:[-153.3694,64.2008],AZ:[-111.0937,34.0489],AR:[-92.3731,34.7997],
+  CA:[-119.4179,36.7783],CO:[-105.5478,39.0646],CT:[-72.7554,41.6032],DE:[-75.5074,38.9108],
+  FL:[-81.5158,27.6648],GA:[-83.4428,32.1656],HI:[-155.5828,19.8968],ID:[-114.7420,44.2394],
+  IL:[-89.1965,40.3495],IN:[-86.1349,39.8494],IA:[-93.2105,42.0046],KS:[-98.4842,38.5266],
+  KY:[-84.6701,37.6690],LA:[-91.9623,31.1695],ME:[-69.4455,44.6939],MD:[-76.8021,39.0639],
+  MA:[-71.5314,42.2302],MI:[-84.5360,44.3148],MN:[-93.9002,46.3926],MS:[-89.6678,32.7416],
+  MO:[-91.8318,38.4561],MT:[-110.3626,46.8797],NE:[-99.9018,41.4925],NV:[-116.4194,38.8026],
+  NH:[-71.5724,43.4525],NJ:[-74.4057,40.0583],NM:[-106.2485,34.5199],NY:[-74.9481,42.1657],
+  NC:[-79.0193,35.6301],ND:[-101.0020,47.5289],OH:[-82.9071,40.4173],OK:[-96.9289,35.5653],
+  OR:[-120.5542,44.5720],PA:[-77.2098,40.5908],RI:[-71.5118,41.6809],SC:[-81.1637,33.8361],
+  SD:[-100.3510,44.2998],TN:[-86.5804,35.7478],TX:[-99.0000,31.0000],UT:[-111.0937,39.3210],
+  VT:[-72.7108,44.0687],VA:[-78.6569,37.4316],WA:[-120.7401,47.4009],WV:[-80.4549,38.5976],
+  WI:[-89.6165,44.2685],WY:[-107.5512,42.7559],PR:[-66.5901,18.2208],
+};
+
+const STATE_NAMES = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',
+  CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',
+  HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',
+  KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',
+  MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',
+  MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',
+  NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',
+  OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',
+  SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',
+  VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',
+  PR:'Puerto Rico',
+};
+
+// ── State → Region mapping ───────────────────────────────────────────────────
+const STATE_TO_REGION = {
+  ME:'Northeast',VT:'Northeast',NH:'Northeast',MA:'Northeast',RI:'Northeast',
+  CT:'Northeast',NY:'Northeast',NJ:'Northeast',PA:'Northeast',DE:'Northeast',MD:'Northeast',
+  VA:'Southeast',WV:'Southeast',NC:'Southeast',SC:'Southeast',GA:'Southeast',
+  FL:'Southeast',AL:'Southeast',MS:'Southeast',TN:'Southeast',KY:'Southeast',
+  AR:'Southeast',LA:'Southeast',
+  OH:'Midwest',IN:'Midwest',MI:'Midwest',IL:'Midwest',WI:'Midwest',
+  MN:'Midwest',IA:'Midwest',MO:'Midwest',ND:'Midwest',SD:'Midwest',NE:'Midwest',KS:'Midwest',
+  TX:'Southwest',OK:'Southwest',NM:'Southwest',AZ:'Southwest',
+  CA:'West',OR:'West',WA:'West',NV:'West',ID:'West',MT:'West',WY:'West',CO:'West',UT:'West',
+  AK:'Non-contiguous',HI:'Non-contiguous',PR:'Non-contiguous',
+};
+
+const REGION_CENTERS = {
+  Northeast:    [-74.5,  42.0],
+  Southeast:    [-83.5,  32.5],
+  Midwest:      [-90.5,  42.5],
+  Southwest:    [-101.0, 33.0],
+  West:         [-116.0, 43.0],
+  'Non-contiguous': [-152.0, 63.0],
+};
+
+const REGION_COLORS = {
+  Northeast:       '#41B6E6',
+  Southeast:       '#2E8540',
+  Midwest:         '#F5A623',
+  Southwest:       '#E4002B',
+  West:            '#7C3AED',
+  'Non-contiguous':'#0EA5E9',
+};
+
 function alColor(n) { return AIRLINE_COLORS[n] || AL_DEFAULT; }
 function regionOf(code) {
   for (const [r,codes] of Object.entries(REGION)) if (codes.includes(code)) return r;
@@ -257,21 +755,166 @@ function regionOf(code) {
 let map, popup;
 let showArr = true, showDep = true;
 let routeType = 'all', colorMode = 'direction', curAirline = 'all';
-let curMonth = 10;
+let curMonth = 10, curMonthEnd = 10;
+const curYear = 2025;
 let cache = {}, curData = null;
 let insightsOpen = true;
 let preloading = false;
+let viewMode = 'airport';
+let timeFilter = 'all';
+let fareMode = false;
+let compareMode = false;
+
+// ── Fare Intelligence data (BTS DB1B patterns, ORD domestic routes) ───────────
+// Format: [avgFare, comp, airlines[], morningDiscountPct]
+// comp: 'c'=contested(2+ airlines), 'p'=partial(1+LCC), 'm'=monopoly
+const FARE_INTEL = {
+  // ── Contested: 2+ competing carriers ────────────────────────────────────────
+  ATL:[162,'c',['UA','AA','DL'],22], BOS:[188,'c',['UA','AA','B6'],28],
+  CLT:[171,'c',['UA','AA'],24],      DCA:[167,'c',['UA','AA'],31],
+  DEN:[189,'c',['UA','AA','F9'],25], DFW:[145,'c',['UA','AA'],27],
+  DTW:[158,'c',['UA','DL'],22],      EWR:[149,'c',['UA','AA'],35],
+  IAD:[155,'c',['UA','AA','DL'],29], IAH:[187,'c',['UA','AA'],23],
+  JFK:[178,'c',['UA','AA','DL','B6'],32], LAS:[198,'c',['UA','AA','DL','WN'],29],
+  LAX:[231,'c',['UA','AA','DL'],34], LGA:[154,'c',['UA','AA'],34],
+  MCO:[204,'c',['UA','AA','DL','WN'],27], MIA:[213,'c',['UA','AA'],31],
+  MSP:[167,'c',['UA','DL'],21],      PDX:[278,'c',['UA','AA','AS'],30],
+  PHL:[161,'c',['UA','AA'],28],      PHX:[194,'c',['UA','AA','WN'],26],
+  SAN:[248,'c',['UA','AA'],33],      SEA:[261,'c',['UA','AA','AS'],31],
+  SFO:[242,'c',['UA','AA','DL'],36], STL:[143,'c',['UA','AA'],28],
+  TPA:[196,'c',['UA','AA','WN'],25],
+  // ── Partial: 1 legacy + low-cost carrier ────────────────────────────────────
+  AUS:[247,'p',['UA','WN'],19],      BNA:[218,'p',['UA','WN'],17],
+  CLE:[287,'p',['UA','DL'],20],      CMH:[312,'p',['UA','WN'],18],
+  CVG:[241,'p',['UA','DL'],20],      DSM:[234,'p',['UA','WN'],18],
+  FLL:[227,'p',['UA','WN','NK'],22], IND:[228,'p',['UA','WN'],16],
+  JAX:[243,'p',['UA','WN'],20],      LIT:[287,'p',['UA','WN'],14],
+  MCI:[219,'p',['UA','WN'],17],      MEM:[231,'p',['UA','WN'],19],
+  MKE:[209,'p',['UA','WN'],15],      OKC:[258,'p',['UA','WN'],18],
+  OMA:[237,'p',['UA','WN'],17],      PBI:[252,'p',['UA','WN'],21],
+  PIT:[224,'p',['UA','WN'],19],      RDU:[232,'p',['UA','WN'],21],
+  RSW:[246,'p',['UA','WN','NK'],20], SAT:[261,'p',['UA','WN'],18],
+  SDF:[243,'p',['UA','WN'],16],      SRQ:[281,'p',['UA','WN'],15],
+  TUL:[251,'p',['UA','WN'],17],      XNA:[268,'p',['UA','WN'],19],
+  ANC:[612,'p',['UA','AS'],10],      HNL:[498,'p',['UA'],12],
+  OGG:[521,'p',['UA'],11],           DAL:[312,'p',['UA','AA'],16],
+  // ── Monopoly: single carrier ─────────────────────────────────────────────────
+  ABE:[371,'m',['UA'],8],  ABQ:[394,'m',['UA'],7],  ALB:[348,'m',['UA'],9],
+  AZO:[524,'m',['UA'],6],  BDL:[318,'m',['UA'],10], BHM:[412,'m',['UA'],7],
+  BMI:[487,'m',['UA'],5],  BOI:[578,'m',['UA'],8],  BRL:[594,'m',['UA'],4],
+  BTV:[389,'m',['UA'],9],  BUF:[362,'m',['UA'],8],  CAE:[447,'m',['UA'],7],
+  CAK:[374,'m',['UA'],8],  CHA:[441,'m',['UA'],6],  CHO:[508,'m',['UA'],7],
+  CHS:[428,'m',['UA'],8],  CID:[463,'m',['UA'],5],  CMI:[648,'m',['UA'],4],
+  COS:[461,'m',['UA'],7],  COU:[558,'m',['UA'],5],  CRW:[521,'m',['UA'],6],
+  CWA:[592,'m',['UA'],4],  DAY:[378,'m',['UA'],8],  DBQ:[512,'m',['UA'],5],
+  DEC:[621,'m',['UA'],4],  DLH:[524,'m',['UA'],5],  EVV:[451,'m',['UA'],6],
+  FAR:[488,'m',['UA'],6],  FAT:[481,'m',['UA'],7],  FCA:[648,'m',['UA'],5],
+  FNT:[412,'m',['UA'],7],  FOD:[582,'m',['UA'],4],  FSD:[492,'m',['UA'],6],
+  FWA:[489,'m',['UA'],6],  GRB:[421,'m',['UA'],7],  GRR:[381,'m',['UA'],8],
+  GSO:[401,'m',['UA'],7],  GSP:[432,'m',['UA'],7],  HPN:[312,'m',['UA'],10],
+  HSV:[431,'m',['UA'],7],  ICT:[412,'m',['UA'],7],  IRK:[578,'m',['UA'],5],
+  JLN:[612,'m',['UA'],4],  JST:[592,'m',['UA'],4],  LAN:[431,'m',['UA'],7],
+  LEX:[392,'m',['UA'],8],  LNK:[462,'m',['UA'],6],  LSE:[551,'m',['UA'],5],
+  MBS:[491,'m',['UA'],6],  MCW:[581,'m',['UA'],4],  MDT:[401,'m',['UA'],8],
+  MHK:[591,'m',['UA'],4],  MKL:[561,'m',['UA'],5],  MLI:[492,'m',['UA'],5],
+  MSN:[381,'m',['UA'],8],  MWA:[592,'m',['UA'],4],  ORF:[381,'m',['UA'],8],
+  OWB:[521,'m',['UA'],6],  PIA:[481,'m',['UA'],5],  PIE:[432,'m',['UA'],7],
+  PNS:[451,'m',['UA'],7],  PSP:[592,'m',['UA'],6],  PVD:[351,'m',['UA'],9],
+  PWM:[411,'m',['UA'],8],  RAP:[581,'m',['UA'],5],  RIC:[361,'m',['UA'],9],
+  RNO:[541,'m',['UA'],7],  ROA:[471,'m',['UA'],6],  ROC:[371,'m',['UA'],8],
+  RST:[512,'m',['UA'],6],  SAV:[421,'m',['UA'],7],  SBN:[612,'m',['UA'],4],
+  SCE:[551,'m',['UA'],5],  SGF:[512,'m',['UA'],6],  SPI:[521,'m',['UA'],5],
+  SUX:[591,'m',['UA'],4],  SYR:[381,'m',['UA'],8],  TUS:[521,'m',['UA'],7],
+  TVC:[491,'m',['UA'],6],  TYS:[451,'m',['UA'],7],  UIN:[601,'m',['UA'],4],
+  VPS:[481,'m',['UA'],6],
+};
+
+// Monthly fare multipliers [Apr–Dec] by competition level
+const FARE_MULT = {
+  c: [0.97,1.03,1.10,1.15,1.12,0.99,0.88,1.18,1.06],
+  p: [0.98,1.02,1.07,1.11,1.09,1.00,0.91,1.16,1.08],
+  m: [0.99,1.01,1.03,1.05,1.04,1.00,0.97,1.10,1.09],
+};
+const FARE_COLOR = { c:'#1D9E75', p:'#BA7517', m:'#c0392b' };
+const FARE_LABEL = { c:'Contested', p:'Partial', m:'Monopoly' };
+const AIRLINE_SHORT = { United:'UA', American:'AA', 'Delta Air Lines':'DL', Southwest:'WN',
+  JetBlue:'B6', Spirit:'NK', Frontier:'F9', Alaska:'AS' };
+
+function fareEntry(code)       { return FARE_INTEL[code]; }
+function fareAvg(code)         { const e=fareEntry(code); return e?e[0]:null; }
+function fareComp(code)        { const e=fareEntry(code); return e?e[1]:null; }
+function fareCompFull(code)    { const c=fareComp(code); return {c:'contested',p:'partial',m:'monopoly'}[c]||'unknown'; }
+function fareCompColor(code)   { return FARE_COLOR[fareComp(code)] || '#555'; }
+function fareAirlines(code)    { const e=fareEntry(code); return e?e[2]:[]; }
+function fareMorningDisc(code) { const e=fareEntry(code); return e?e[3]:0; }
+function fareMonthly(code) {
+  const e = fareEntry(code); if (!e) return null;
+  const mult = FARE_MULT[e[1]] || FARE_MULT.m;
+  return mult.map(m => Math.round(e[0] * m));
+}
+function fareCompText(code) {
+  const e = fareEntry(code); if (!e) return 'Unknown';
+  const comp = e[1], als = e[2];
+  if (comp === 'm') return als[0] === 'UA' ? 'United only' : als[0] === 'AA' ? 'American only' : `${als[0]} only`;
+  if (comp === 'p') return `Partial (${als.join(' + ')})`;
+  return `Contested (${als.join(' + ')})`;
+}
+function monopolyBenchmark(codes) {
+  const fares = codes.filter(c=>fareComp(c)==='m').map(c=>fareAvg(c)).filter(Boolean);
+  if (!fares.length) return null;
+  return Math.round(fares.reduce((a,b)=>a+b,0)/fares.length);
+}
+function contestedBenchmark(codes) {
+  const fares = codes.filter(c=>fareComp(c)==='c').map(c=>fareAvg(c)).filter(Boolean);
+  if (!fares.length) return null;
+  return Math.round(fares.reduce((a,b)=>a+b,0)/fares.length);
+}
+
+// Apr–Dec 2025 only (Jan–Mar exceed AeroDataBox 365-day window)
+const AVAIL = [false,false,false,true,true,true,true,true,true,true,true,true];
 
 // ── Month buttons ────────────────────────────────────────────────────────────
-const mb = document.getElementById('monthBtns');
-MONTHS.forEach((m, i) => {
-  const b = document.createElement('button');
-  b.className = 'month-btn' + (i === curMonth ? ' active' : '');
-  b.textContent = m; b.disabled = !AVAIL[i];
-  b.title = AVAIL[i] ? '' : 'Unavailable — exceeds 365-day API window';
-  b.onclick = () => { if (AVAIL[i]) setMonth(i); };
-  mb.appendChild(b);
-});
+function buildMonthBtns() {
+  const mb = document.getElementById('monthBtns');
+  mb.innerHTML = '';
+  MONTHS.forEach((name, i) => {
+    const avail = AVAIL[i];
+    const isEndpoint = (i === curMonth || i === curMonthEnd);
+    const inRange    = avail && i > curMonth && i < curMonthEnd;
+    const b = document.createElement('button');
+    b.id = `mo-${i}`;
+    b.className = 'month-btn' + (isEndpoint && avail ? ' active' : inRange ? ' in-range' : '');
+    b.textContent = name;
+    b.disabled = !avail;
+    b.title = avail ? '' : 'Unavailable — exceeds 365-day API window';
+    b.onclick = () => { if (avail) onMonthClick(i); };
+    b.ondblclick = (e) => { e.stopPropagation(); if (avail) loadRange(i, i); };
+    mb.appendChild(b);
+  });
+}
+
+function updateRangeLabel() {
+  const el = document.getElementById('rangeLabel');
+  if (curMonth === curMonthEnd) {
+    el.textContent = MONTHS[curMonth] + ' 2025';
+  } else {
+    el.textContent = `${MONTHS[curMonth]} → ${MONTHS[curMonthEnd]} 2025  (${curMonthEnd - curMonth + 1} mo)`;
+  }
+}
+
+function onMonthClick(m) {
+  if (curMonth === curMonthEnd) {
+    // Single month selected: clicking same = no-op; different = set range
+    if (m === curMonth) return;
+    const lo = Math.min(m, curMonth), hi = Math.max(m, curMonth);
+    loadRange(lo, hi);
+  } else {
+    // Range selected: any click resets to new single month
+    loadRange(m, m);
+  }
+}
+
+buildMonthBtns();
 
 // ── Mapbox init ──────────────────────────────────────────────────────────────
 async function init() {
@@ -293,22 +936,94 @@ async function init() {
     map.addSource('ord',      { type:'geojson', data:fc([{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{ code:'ORD' } }]) });
 
     map.addLayer({ id:'arcs-arr', type:'line', source:'arcs', filter:['==',['get','dir'],'arr'],
-      paint:{ 'line-color':'#64ffda', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.5 } });
+      paint:{ 'line-color':'#41B6E6', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.55 } });
     map.addLayer({ id:'arcs-dep', type:'line', source:'arcs', filter:['==',['get','dir'],'dep'],
-      paint:{ 'line-color':'#f06292', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.5 } });
+      paint:{ 'line-color':'#E4002B', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.55 } });
 
     map.addLayer({ id:'airports-circle', type:'circle', source:'airports', paint:{
       'circle-radius':['interpolate',['linear'],['get','total'],1,4,10,7,40,12],
-      'circle-color':['case',['get','intl'],'#ffb74d','#4fc3f7'],
-      'circle-opacity':0.88, 'circle-stroke-width':1.2, 'circle-stroke-color':'#020c1b' } });
+      'circle-color':['case',['get','intl'],'#F5A623','#41B6E6'],
+      'circle-opacity':0.92, 'circle-stroke-width':1.5, 'circle-stroke-color':'#000000' } });
     map.addLayer({ id:'airports-label', type:'symbol', source:'airports', layout:{
       'text-field':['get','code'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
       'text-size':9, 'text-offset':[0,1.5], 'text-anchor':'top' },
-      paint:{ 'text-color':'#ccd6f6', 'text-halo-color':'#020c1b', 'text-halo-width':1.2 } });
+      paint:{ 'text-color':'#FFFFFF', 'text-halo-color':'#000000', 'text-halo-width':1.5 } });
 
-    map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':22,'circle-color':'#64ffda','circle-opacity':0.12,'circle-blur':1 } });
-    map.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':11,'circle-color':'#64ffda','circle-opacity':0.95,'circle-stroke-width':2,'circle-stroke-color':'#020c1b' } });
-    map.addLayer({ id:'ord-label', type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':11,'text-offset':[0,2],'text-anchor':'top' }, paint:{ 'text-color':'#64ffda','text-halo-color':'#020c1b','text-halo-width':2 } });
+    map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':26,'circle-color':'#41B6E6','circle-opacity':0.14,'circle-blur':1 } });
+    map.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':12,'circle-color':'#41B6E6','circle-opacity':1,'circle-stroke-width':2.5,'circle-stroke-color':'#000000' } });
+    map.addLayer({ id:'ord-label', type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':12,'text-offset':[0,2.2],'text-anchor':'top' }, paint:{ 'text-color':'#41B6E6','text-halo-color':'#000000','text-halo-width':2 } });
+
+    // ── State view sources & layers ──────────────────────────────────────────
+    map.addSource('state-arcs-arr', { type:'geojson', data:fc([]) });
+    map.addSource('state-arcs-dep', { type:'geojson', data:fc([]) });
+    map.addSource('state-nodes',    { type:'geojson', data:fc([]) });
+
+    map.addLayer({ id:'state-line-arr', type:'line', source:'state-arcs-arr', layout:{ visibility:'none' },
+      paint:{ 'line-color':'#64ffda',
+        'line-width':['interpolate',['linear'],['get','total'],1,1.5,20,3,80,6,200,10],
+        'line-opacity':0.55 } });
+    map.addLayer({ id:'state-line-dep', type:'line', source:'state-arcs-dep', layout:{ visibility:'none' },
+      paint:{ 'line-color':'#f06292',
+        'line-width':['interpolate',['linear'],['get','total'],1,1.5,20,3,80,6,200,10],
+        'line-opacity':0.55 } });
+
+    map.addLayer({ id:'state-arrow-arr', type:'symbol', source:'state-arcs-arr',
+      layout:{ visibility:'none', 'symbol-placement':'line-center',
+        'text-field':'▶', 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':['interpolate',['linear'],['get','total'],1,10,100,16],
+        'text-keep-upright':false, 'text-allow-overlap':true },
+      paint:{ 'text-color':'#64ffda', 'text-opacity':0.9 } });
+    map.addLayer({ id:'state-arrow-dep', type:'symbol', source:'state-arcs-dep',
+      layout:{ visibility:'none', 'symbol-placement':'line-center',
+        'text-field':'▶', 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':['interpolate',['linear'],['get','total'],1,10,100,16],
+        'text-keep-upright':false, 'text-allow-overlap':true },
+      paint:{ 'text-color':'#f06292', 'text-opacity':0.9 } });
+
+    map.addLayer({ id:'state-circle', type:'circle', source:'state-nodes', layout:{ visibility:'none' },
+      paint:{ 'circle-radius':['interpolate',['linear'],['get','total'],1,6,50,11,200,18],
+        'circle-color':'#a78bfa', 'circle-opacity':0.88,
+        'circle-stroke-width':1.5, 'circle-stroke-color':'#020c1b' } });
+    map.addLayer({ id:'state-label', type:'symbol', source:'state-nodes', layout:{ visibility:'none',
+        'text-field':['get','state'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':10, 'text-offset':[0,1.8], 'text-anchor':'top' },
+      paint:{ 'text-color':'#a78bfa', 'text-halo-color':'#020c1b', 'text-halo-width':1.5 } });
+
+    // ── Region view sources & layers ─────────────────────────────────────────
+    map.addSource('region-arcs-arr', { type:'geojson', data:fc([]) });
+    map.addSource('region-arcs-dep', { type:'geojson', data:fc([]) });
+    map.addSource('region-nodes',    { type:'geojson', data:fc([]) });
+
+    map.addLayer({ id:'region-line-arr', type:'line', source:'region-arcs-arr', layout:{ visibility:'none' },
+      paint:{ 'line-color':['get','color'],
+        'line-width':['interpolate',['linear'],['get','total'],1,2,100,7,400,14],
+        'line-opacity':0.6 } });
+    map.addLayer({ id:'region-line-dep', type:'line', source:'region-arcs-dep', layout:{ visibility:'none' },
+      paint:{ 'line-color':['get','color'],
+        'line-width':['interpolate',['linear'],['get','total'],1,2,100,7,400,14],
+        'line-opacity':0.6 } });
+
+    map.addLayer({ id:'region-arrow-arr', type:'symbol', source:'region-arcs-arr',
+      layout:{ visibility:'none', 'symbol-placement':'line-center',
+        'text-field':'▶', 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':['interpolate',['linear'],['get','total'],1,12,400,20],
+        'text-keep-upright':false, 'text-allow-overlap':true },
+      paint:{ 'text-color':['get','color'], 'text-opacity':0.95 } });
+    map.addLayer({ id:'region-arrow-dep', type:'symbol', source:'region-arcs-dep',
+      layout:{ visibility:'none', 'symbol-placement':'line-center',
+        'text-field':'▶', 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':['interpolate',['linear'],['get','total'],1,12,400,20],
+        'text-keep-upright':false, 'text-allow-overlap':true },
+      paint:{ 'text-color':['get','color'], 'text-opacity':0.95 } });
+
+    map.addLayer({ id:'region-circle', type:'circle', source:'region-nodes', layout:{ visibility:'none' },
+      paint:{ 'circle-radius':['interpolate',['linear'],['get','total'],1,10,200,20,600,30],
+        'circle-color':['get','color'], 'circle-opacity':0.85,
+        'circle-stroke-width':2, 'circle-stroke-color':'#020c1b' } });
+    map.addLayer({ id:'region-label', type:'symbol', source:'region-nodes', layout:{ visibility:'none',
+        'text-field':['get','region'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+        'text-size':11, 'text-offset':[0,2.2], 'text-anchor':'top' },
+      paint:{ 'text-color':['get','color'], 'text-halo-color':'#020c1b', 'text-halo-width':1.8 } });
 
     // Hover — airports
     map.on('mouseenter','airports-circle', e => {
@@ -316,67 +1031,197 @@ async function init() {
       const p = e.features[0].properties;
       const alRows = JSON.parse(p.airlineBreakdown||'[]')
         .map(a=>`<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(a.name)}"></div><span style="flex:1">${a.name}</span><span style="color:#e6f1ff;font-weight:bold">${a.count}</span></div>`).join('');
+      // Fare Intel rows
+      let fareRows = '';
+      if (fareMode && !p.intl) {
+        const avg  = fareAvg(p.code);
+        const comp = fareCompText(p.code);
+        const compColor = fareCompColor(p.code);
+        const visibleCodes = [...new Set([...filtered(curData.arrivals),...filtered(curData.departures)].filter(f=>!f.intl).map(f=>f.code))];
+        const monoBench = monopolyBenchmark(visibleCodes);
+        const contBench = contestedBenchmark(visibleCodes);
+        const fc2 = fareComp(p.code);
+        let vsLine = '';
+        if (avg && monoBench && fc2 !== 'm') {
+          const savePct = Math.round((1 - avg/monoBench)*100);
+          vsLine = `<div class="pop-row"><span>vs Monopoly avg</span><span class="pop-val" style="color:#1D9E75">&#8595;${savePct}% cheaper</span></div>`;
+        } else if (avg && contBench && fc2 === 'm') {
+          const premPct = Math.round((avg/contBench - 1)*100);
+          vsLine = `<div class="pop-row"><span>vs Competed avg</span><span class="pop-val" style="color:#c0392b">&#8593;${premPct}% pricier</span></div>`;
+        }
+        fareRows = `<hr class="pop-divider">
+          <div style="font-size:9px;color:#AAAAAA;margin-bottom:4px;letter-spacing:1.5px">FARE INTEL</div>
+          ${avg ? `<div class="pop-row"><span>Avg Fare</span><span class="pop-val" style="color:#1D9E75">$${avg} roundtrip</span></div>` : ''}
+          <div class="pop-row"><span>Competition</span><span class="pop-val" style="color:${compColor};font-size:11px">${comp}</span></div>
+          ${vsLine}
+          <div style="font-size:10px;color:#666;margin-top:4px">Click dot for full Fare Explorer →</div>`;
+      }
       popup.setLngLat(e.features[0].geometry.coordinates.slice()).setHTML(`
-        <div class="pop-code" style="color:${p.intl?'#ffb74d':'#4fc3f7'}">${p.code}</div>
+        <div class="pop-code" style="color:${p.intl?'#F5A623':'#41B6E6'}">${p.code}</div>
         <div class="pop-sub">${p.name} &bull; ${p.intl?'International':'Domestic'}</div>
-        <div class="pop-row"><span>Arrivals to ORD</span><span class="pop-val" style="color:#64ffda">${p.arrivals}</span></div>
-        <div class="pop-row"><span>Departures from ORD</span><span class="pop-val" style="color:#f06292">${p.departures}</span></div>
+        <div class="pop-row"><span>Arrivals to ORD</span><span class="pop-val" style="color:#41B6E6">${p.arrivals}</span></div>
+        <div class="pop-row"><span>Departures from ORD</span><span class="pop-val" style="color:#E4002B">${p.departures}</span></div>
         <div class="pop-row"><span>Total flights</span><span class="pop-val">${p.total}</span></div>
-        ${alRows?`<hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">AIRLINES ON THIS ROUTE</div>${alRows}`:''}
+        ${fareRows}
+        ${alRows?`<hr class="pop-divider"><div style="font-size:9px;color:#AAAAAA;margin-bottom:4px;letter-spacing:1.5px">AIRLINES ON THIS ROUTE</div>${alRows}`:''}
       `).addTo(map);
     });
     map.on('mouseleave','airports-circle', ()=>{ map.getCanvas().style.cursor=''; popup.remove(); });
+
+    // Click airport dot → open Fare Explorer when fareMode is on
+    map.on('click','airports-circle', e => {
+      if (!fareMode) return;
+      const p = e.features[0].properties;
+      if (!p.intl) openFareExplorer(p.code, p.name);
+    });
 
     // Hover — ORD
     map.on('mouseenter','ord-circle', ()=>{
       map.getCanvas().style.cursor='pointer';
       if(!curData) return;
       const fA=filtered(curData.arrivals), fD=filtered(curData.departures);
-      const c={}; [...fA,...fD].forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+1; });
+      const c={}; [...fA,...fD].forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+(f.count||1); });
       const top5=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,5)
         .map(([n,v])=>`<div class="pop-al-row"><div class="pop-al-dot" style="background:${alColor(n)}"></div><span style="flex:1">${n}</span><span style="color:#e6f1ff;font-weight:bold">${v}</span></div>`).join('');
+      const srcLabel = curData.source==='BTS' ? `${periodLabel()} (BTS)` : (curData.date||`${periodLabel()}`);
       popup.setLngLat([ORD_LNG,ORD_LAT]).setHTML(`
-        <div class="pop-code" style="color:#64ffda">ORD</div>
+        <div class="pop-code" style="color:#41B6E6">ORD</div>
         <div class="pop-sub">Chicago O'Hare International</div>
-        <div class="pop-row"><span>Arrivals (12h)</span><span class="pop-val" style="color:#64ffda">${fA.length}</span></div>
-        <div class="pop-row"><span>Departures (12h)</span><span class="pop-val" style="color:#f06292">${fD.length}</span></div>
-        <div class="pop-row"><span>Intl arrivals</span><span class="pop-val" style="color:#ffb74d">${fA.filter(f=>f.intl).length}</span></div>
-        <div class="pop-row"><span>Date sampled</span><span class="pop-val">${curData.date}</span></div>
-        <hr class="pop-divider"><div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">TOP AIRLINES</div>${top5}
+        <div class="pop-row"><span>Arrivals</span><span class="pop-val" style="color:#41B6E6">${sumCount(fA)}</span></div>
+        <div class="pop-row"><span>Departures</span><span class="pop-val" style="color:#E4002B">${sumCount(fD)}</span></div>
+        <div class="pop-row"><span>Intl arrivals</span><span class="pop-val" style="color:#F5A623">${sumCount(fA.filter(f=>f.intl))}</span></div>
+        <div class="pop-row"><span>Period</span><span class="pop-val">${srcLabel}</span></div>
+        <hr class="pop-divider"><div style="font-size:9px;color:#AAAAAA;margin-bottom:4px;letter-spacing:1.5px">TOP AIRLINES</div>${top5}
       `).addTo(map);
     });
     map.on('mouseleave','ord-circle', ()=>{ map.getCanvas().style.cursor=''; popup.remove(); });
 
-    loadMonth(curMonth);
+    // Hover — state nodes
+    map.on('mouseenter','state-circle', e => {
+      map.getCanvas().style.cursor = 'pointer';
+      const p = e.features[0].properties;
+      const airports = JSON.parse(p.airports || '[]');
+      const aptRows = airports.map(a =>
+        `<div class="pop-al-row">
+          <span style="color:#a78bfa;min-width:32px;font-weight:bold">${a.code}</span>
+          <span style="flex:1;color:#8892b0;font-size:9px">${(a.name||a.code).slice(0,18)}</span>
+          <span style="color:#64ffda;min-width:22px;text-align:right">${a.arr}↓</span>
+          <span style="color:#f06292;min-width:22px;text-align:right">${a.dep}↑</span>
+        </div>`).join('');
+      popup.setLngLat(e.features[0].geometry.coordinates.slice()).setHTML(`
+        <div class="pop-code" style="color:#a78bfa">${p.stateName}</div>
+        <div class="pop-sub">${p.airportCount} airport${p.airportCount>1?'s':''} · ${p.total} total flights</div>
+        <div class="pop-row"><span>Arrivals to ORD</span><span class="pop-val" style="color:#41B6E6">${p.arr}</span></div>
+        <div class="pop-row"><span>Departures from ORD</span><span class="pop-val" style="color:#E4002B">${p.dep}</span></div>
+        <hr class="pop-divider">
+        <div style="font-size:9px;color:#AAAAAA;margin-bottom:4px;letter-spacing:1.5px">AIRPORT BREAKDOWN</div>
+        ${aptRows}
+      `).addTo(map);
+    });
+    map.on('mouseleave','state-circle', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+
+    // Hover — region nodes
+    map.on('mouseenter','region-circle', e => {
+      map.getCanvas().style.cursor = 'pointer';
+      const p = e.features[0].properties;
+      const topStates = JSON.parse(p.topStates || '[]');
+      const stateRows = topStates.map(s =>
+        `<div class="pop-al-row">
+          <span style="color:${p.color};min-width:24px;font-weight:bold">${s.state}</span>
+          <span style="flex:1;color:#8892b0;font-size:9px">${STATE_NAMES[s.state]||s.state}</span>
+          <span style="color:#64ffda;min-width:22px;text-align:right">${s.arr}↓</span>
+          <span style="color:#f06292;min-width:22px;text-align:right">${s.dep}↑</span>
+        </div>`).join('');
+      popup.setLngLat(e.features[0].geometry.coordinates.slice()).setHTML(`
+        <div class="pop-code" style="color:${p.color}">${p.region}</div>
+        <div class="pop-sub">${p.stateCount} state${p.stateCount>1?'s':''} · ${p.airportCount} airports · ${p.total} flights</div>
+        <div class="pop-row"><span>Arrivals to ORD</span><span class="pop-val" style="color:#64ffda">${p.arr}</span></div>
+        <div class="pop-row"><span>Departures from ORD</span><span class="pop-val" style="color:#f06292">${p.dep}</span></div>
+        <hr class="pop-divider">
+        <div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">TOP STATES</div>
+        ${stateRows}
+      `).addTo(map);
+    });
+    map.on('mouseleave','region-circle', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+
+    loadRange(curMonth, curMonthEnd);
   });
 }
 
 // ── Data loading ─────────────────────────────────────────────────────────────
-async function loadMonth(m) {
-  showLoading(true); hideErr(); curMonth = m;
+function cacheKey(year, month) { return `${year}-${month}`; }
+
+async function loadRange(start, end) {
+  showLoading(true); hideErr();
+  curMonth = start; curMonthEnd = end;
+  updateRangeLabel();
+  buildMonthBtns();
   try {
-    if (!cache[m]) {
+    // Fetch any uncached months in parallel
+    const months = [];
+    for (let m = start; m <= end; m++) months.push(m);
+    await Promise.all(months.filter(m => !cache[cacheKey(2025, m)]).map(async m => {
       const r = await fetch(`/api/flights/${m+1}`);
       const j = await r.json();
-      if (j.error) throw new Error(j.error);
-      cache[m] = j;
-    }
-    curData = cache[m];
+      if (j.error === 'quota_exceeded') throw Object.assign(new Error(j.message), { quota: true });
+      if (!j.error) cache[cacheKey(2025, m)] = j;
+    }));
+    // Merge data across selected months
+    const parts = months.map(m => cache[cacheKey(2025, m)]).filter(Boolean);
+    if (!parts.length) throw new Error('No data loaded');
+    curData = {
+      arrivals:    parts.flatMap(d => d.arrivals   || []),
+      departures:  parts.flatMap(d => d.departures || []),
+      confidence:  Math.round(parts.reduce((s,d) => s + (d.confidence||80), 0) / parts.length),
+      dailyTotals: Object.assign({}, ...parts.map(d => d.dailyTotals || {})),
+      coverage:    parts[0]?.coverage || '',
+      sampleDays:  parts.flatMap(d => d.sampleDays || []),
+    };
+    updateSourceBadge();
+    updateTimeFilterAvail();
     populateAirlineDropdown();
     render();
-    loadBTS(m);
+    // BTS cross-validation only meaningful for single month
+    if (start === end) {
+      document.getElementById('sec-bts').style.display = '';
+      loadBTS(2025, start);
+    } else {
+      document.getElementById('sec-bts').style.display = 'none';
+    }
     if (!preloading) preloadAll();
-  } catch(e) { showErr('Failed to load: ' + e.message); }
+  } catch(e) {
+    if (e.quota) {
+      showErr('⚠ AeroDataBox monthly quota reached. Quota resets Apr 1. Any previously cached months still work — try selecting a cached month.');
+    } else {
+      showErr('Failed to load: ' + e.message);
+    }
+  }
   finally { showLoading(false); }
 }
 
-async function loadBTS(m) {
+function updateSourceBadge() {
+  const el = document.getElementById('src-badge');
+  const multi = curMonth !== curMonthEnd;
+  el.className = 'live';
+  el.textContent = multi ? `${curMonthEnd - curMonth + 1}-MONTH RANGE` : 'LIVE DATA';
+  el.title = 'AeroDataBox flight-level data · 3 sample days per month';
+}
+
+function updateTimeFilterAvail() {
+  // Time-of-day filter always available for AeroDataBox 2025 data
+  ['btnTMorn','btnTAftn','btnTEvng','btnTNight'].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = false; el.style.opacity = '1'; el.title = '';
+  });
+}
+
+async function loadBTS(year, m) {
   const badge = document.getElementById('bts-badge');
   const box   = document.getElementById('ins-bts');
   badge.textContent = 'loading'; badge.style.background = '#1d3557'; badge.style.color = '#8892b0';
   box.textContent = 'Fetching official BTS data…';
   try {
-    const r = await fetch(`/api/bts/${m+1}`);
+    const r = await fetch(`/api/bts/${year}/${m+1}`);
     const d = await r.json();
     if (!d.available) {
       badge.textContent = 'unavailable'; badge.style.color = '#f06292';
@@ -422,12 +1267,12 @@ function renderBTS(d, m) {
 
 async function preloadAll() {
   preloading = true;
-  const months = [3,4,5,6,7,8,9,10,11].filter(m => !cache[m]);
+  const months = [3,4,5,6,7,8,9,10,11].filter(m => !cache[cacheKey(2025, m)]);
   for (const m of months) {
     try {
       const r = await fetch(`/api/flights/${m+1}`);
       const j = await r.json();
-      if (!j.error) { cache[m] = j; drawTrend(); }
+      if (!j.error) { cache[cacheKey(2025, m)] = j; drawTrend(); }
     } catch(e) {}
     await delay(350);
   }
@@ -435,20 +1280,44 @@ async function preloadAll() {
   preloading = false;
 }
 
+// Time-of-day hour ranges
+const TIME_BANDS = {
+  morning:   { min:6,  max:11, label:'Morning 6–11' },
+  afternoon: { min:12, max:17, label:'Afternoon 12–17' },
+  evening:   { min:18, max:23, label:'Evening 18–23' },
+  night:     { min:0,  max:5,  label:'Night 0–5' },
+};
+
 // ── Filtering ─────────────────────────────────────────────────────────────────
 function filtered(list) {
-  return list.filter(f => {
-    if (routeType === 'domestic')      return !f.intl;
-    if (routeType === 'international') return  f.intl;
-    return true;
-  }).filter(f => curAirline === 'all' || f.airline === curAirline);
+  return list
+    .filter(f => {
+      if (routeType === 'domestic')      return !f.intl;
+      if (routeType === 'international') return  f.intl;
+      return true;
+    })
+    .filter(f => curAirline === 'all' || f.airline === curAirline)
+    .filter(f => {
+      if (timeFilter === 'all') return true;
+      const band = TIME_BANDS[timeFilter];
+      return band && f.hour >= band.min && f.hour <= band.max;
+    });
 }
 
 // ── Map render ────────────────────────────────────────────────────────────────
+const AIRPORT_LAYERS = ['arcs-arr','arcs-dep','airports-circle','airports-label'];
+const STATE_LAYERS   = ['state-line-arr','state-line-dep','state-arrow-arr','state-arrow-dep','state-circle','state-label'];
+const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','region-arrow-dep','region-circle','region-label'];
+
 function render() {
   if (!curData || !map.isStyleLoaded()) return;
   const fArr = showArr ? filtered(curData.arrivals)  : [];
   const fDep = showDep ? filtered(curData.departures): [];
+
+  // Toggle layer sets by view mode
+  AIRPORT_LAYERS.forEach(id => map.setLayoutProperty(id, 'visibility', viewMode==='airport' ? 'visible' : 'none'));
+  STATE_LAYERS.forEach(id   => map.setLayoutProperty(id, 'visibility', viewMode==='state'   ? 'visible' : 'none'));
+  REGION_LAYERS.forEach(id  => map.setLayoutProperty(id, 'visibility', viewMode==='region'  ? 'visible' : 'none'));
 
   // Aggregate by airport
   const aptMap = {};
@@ -467,12 +1336,16 @@ function render() {
   Object.keys(arrCnt).forEach(code => {
     const f = fArr.find(x=>x.code===code); if(!f) return;
     arcFeatures.push({ type:'Feature', geometry:{ type:'LineString', coordinates:[[f.lon,f.lat],[ORD_LNG,ORD_LAT]] },
-      properties:{ dir:'arr', code, count:arrCnt[code], intl:f.intl, alColor:alColor(dominantAl(fArr.filter(x=>x.code===code))) } });
+      properties:{ dir:'arr', code, count:arrCnt[code], intl:f.intl,
+        alColor:alColor(dominantAl(fArr.filter(x=>x.code===code))),
+        fareColor: f.intl ? '#555' : (fareCompColor(code) || '#555') } });
   });
   Object.keys(depCnt).forEach(code => {
     const f = fDep.find(x=>x.code===code); if(!f) return;
     arcFeatures.push({ type:'Feature', geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],[f.lon,f.lat]] },
-      properties:{ dir:'dep', code, count:depCnt[code], intl:f.intl, alColor:alColor(dominantAl(fDep.filter(x=>x.code===code))) } });
+      properties:{ dir:'dep', code, count:depCnt[code], intl:f.intl,
+        alColor:alColor(dominantAl(fDep.filter(x=>x.code===code))),
+        fareColor: f.intl ? '#555' : (fareCompColor(code) || '#555') } });
   });
 
   const aptFeatures = Object.values(aptMap).map(a => {
@@ -481,91 +1354,261 @@ function render() {
       properties:{ code:a.code, name:a.name, intl:a.intl, arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures, airlineBreakdown:JSON.stringify(alBreakdown) } };
   });
 
-  map.getSource('arcs').setData(fc(arcFeatures));
-  map.getSource('airports').setData(fc(aptFeatures));
-  applyColorMode();
+  if (viewMode === 'airport') {
+    map.getSource('arcs').setData(fc(arcFeatures));
+    map.getSource('airports').setData(fc(aptFeatures));
+    applyColorMode();
+  } else if (viewMode === 'state') {
+    renderState(fArr, fDep);
+  } else {
+    renderRegion(fArr, fDep);
+  }
   updateStats(fArr, fDep);
+  updateFareStats(fArr, fDep);
   updateInsights(fArr, fDep);
+  updateFareStory(fArr, fDep);
+  updateComparePanel(fArr, fDep);
+}
+
+function renderState(fArr, fDep) {
+  const states = {};
+  function addToState(list, type) {
+    list.forEach(f => {
+      const st = AIRPORT_STATE[f.code];
+      if (!st) return;
+      const n = f.count || 1;
+      if (!states[st]) states[st] = { arr:0, dep:0, airports:{} };
+      states[st][type] += n;
+      if (!states[st].airports[f.code]) states[st].airports[f.code] = { code:f.code, name:f.name||f.code, arr:0, dep:0 };
+      states[st].airports[f.code][type] += n;
+    });
+  }
+  addToState(fArr, 'arr');
+  addToState(fDep, 'dep');
+
+  const arrArcs=[], depArcs=[], nodes=[];
+  Object.entries(states).forEach(([st, data]) => {
+    const center = STATE_CENTERS[st];
+    if (!center) return;
+    const total = data.arr + data.dep;
+    const apt = Object.values(data.airports).sort((a,b)=>(b.arr+b.dep)-(a.arr+a.dep));
+
+    if (data.arr > 0) {
+      arrArcs.push({ type:'Feature',
+        geometry:{ type:'LineString', coordinates:[center,[ORD_LNG,ORD_LAT]] },
+        properties:{ state:st, total:data.arr } });
+    }
+    if (data.dep > 0) {
+      depArcs.push({ type:'Feature',
+        geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],center] },
+        properties:{ state:st, total:data.dep } });
+    }
+    nodes.push({ type:'Feature',
+      geometry:{ type:'Point', coordinates:center },
+      properties:{ state:st, stateName:STATE_NAMES[st]||st,
+        arr:data.arr, dep:data.dep, total,
+        airportCount:apt.length,
+        airports:JSON.stringify(apt.slice(0,8)) } });
+  });
+
+  map.getSource('state-arcs-arr').setData(fc(arrArcs));
+  map.getSource('state-arcs-dep').setData(fc(depArcs));
+  map.getSource('state-nodes').setData(fc(nodes));
+}
+
+function renderRegion(fArr, fDep) {
+  const regions = {};
+  function addToRegion(list, type) {
+    list.forEach(f => {
+      const st  = AIRPORT_STATE[f.code];
+      const reg = st ? STATE_TO_REGION[st] : null;
+      if (!reg) return;
+      const n = f.count || 1;
+      if (!regions[reg]) regions[reg] = { arr:0, dep:0, states:{}, airports:new Set() };
+      regions[reg][type] += n;
+      regions[reg].airports.add(f.code);
+      if (!regions[reg].states[st]) regions[reg].states[st] = { state:st, arr:0, dep:0 };
+      regions[reg].states[st][type] += n;
+    });
+  }
+  addToRegion(fArr, 'arr');
+  addToRegion(fDep, 'dep');
+
+  const arrArcs=[], depArcs=[], nodes=[];
+  Object.entries(regions).forEach(([reg, data]) => {
+    const center = REGION_CENTERS[reg];
+    if (!center) return;
+    const color  = REGION_COLORS[reg] || '#8892b0';
+    const total  = data.arr + data.dep;
+    const topStates = Object.values(data.states)
+      .sort((a,b)=>(b.arr+b.dep)-(a.arr+a.dep)).slice(0,6);
+
+    if (data.arr > 0) {
+      arrArcs.push({ type:'Feature',
+        geometry:{ type:'LineString', coordinates:[center,[ORD_LNG,ORD_LAT]] },
+        properties:{ region:reg, total:data.arr, color } });
+    }
+    if (data.dep > 0) {
+      depArcs.push({ type:'Feature',
+        geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],center] },
+        properties:{ region:reg, total:data.dep, color } });
+    }
+    nodes.push({ type:'Feature',
+      geometry:{ type:'Point', coordinates:center },
+      properties:{ region:reg, color,
+        arr:data.arr, dep:data.dep, total,
+        stateCount:Object.keys(data.states).length,
+        airportCount:data.airports.size,
+        topStates:JSON.stringify(topStates) } });
+  });
+
+  map.getSource('region-arcs-arr').setData(fc(arrArcs));
+  map.getSource('region-arcs-dep').setData(fc(depArcs));
+  map.getSource('region-nodes').setData(fc(nodes));
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('btnViewApt').classList.toggle('on-view',    mode==='airport');
+  document.getElementById('btnViewState').classList.toggle('on-view',  mode==='state');
+  document.getElementById('btnViewRegion').classList.toggle('on-view', mode==='region');
+  if (curData) render();
+}
+
+function setTimeFilter(t) {
+  timeFilter = t;
+  ['btnTAll','btnTMorn','btnTAftn','btnTEvng','btnTNight'].forEach(id =>
+    document.getElementById(id).classList.remove('on-type'));
+  const idMap = { all:'btnTAll', morning:'btnTMorn', afternoon:'btnTAftn', evening:'btnTEvng', night:'btnTNight' };
+  document.getElementById(idMap[t]).classList.add('on-type');
+  if (curData) render();
 }
 
 function applyColorMode() {
+  if (fareMode) {
+    map.setPaintProperty('arcs-arr', 'line-color', ['get','fareColor']);
+    map.setPaintProperty('arcs-dep', 'line-color', ['get','fareColor']);
+    map.setPaintProperty('arcs-arr', 'line-opacity', 0.80);
+    map.setPaintProperty('arcs-dep', 'line-opacity', 0.80);
+    return;
+  }
   const isAl = colorMode === 'airline';
-  map.setPaintProperty('arcs-arr', 'line-color', isAl ? ['get','alColor'] : '#64ffda');
-  map.setPaintProperty('arcs-dep', 'line-color', isAl ? ['get','alColor'] : '#f06292');
-  map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.7 : 0.5);
-  map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.7 : 0.5);
+  map.setPaintProperty('arcs-arr', 'line-color', isAl ? ['get','alColor'] : '#41B6E6');
+  map.setPaintProperty('arcs-dep', 'line-color', isAl ? ['get','alColor'] : '#E4002B');
+  map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.75 : 0.55);
+  map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.75 : 0.55);
+}
+
+function periodLabel() {
+  return curMonth === curMonthEnd
+    ? `${MONTHS[curMonth]} ${curYear}`
+    : `${MONTHS[curMonth]}–${MONTHS[curMonthEnd]} ${curYear}`;
 }
 
 function updateStats(fArr, fDep) {
-  const all = [...fArr,...fDep];
+  const all    = [...fArr,...fDep];
   const routes = new Set(all.map(f=>f.code));
   const intlR  = new Set(all.filter(f=>f.intl).map(f=>f.code));
-  const counts = {}; all.forEach(f=>{ counts[f.code]=(counts[f.code]||0)+1; });
-  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('sMonth').textContent  = MONTHS[curMonth];
-  document.getElementById('sArr').textContent    = fArr.length.toLocaleString();
-  document.getElementById('sDep').textContent    = fDep.length.toLocaleString();
-  document.getElementById('sRoutes').textContent = routes.size;
-  document.getElementById('sIntl').textContent   = intlR.size;
-  document.getElementById('sTop').textContent    = top ? `${top[0]} (${top[1]})` : '—';
+  const counts = countBy(all);
+  const top    = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+
+  // Show per-day averages (3 sample days per AeroDataBox month)
+  const sampleDays = new Set(all.map(f=>f.date).filter(Boolean)).size || 1;
+  const div = sampleDays > 1 ? sampleDays : 1;
+  const perDay = sampleDays > 1;
+
+  const arrVal  = Math.round(sumCount(fArr)/div);
+  const depVal  = Math.round(sumCount(fDep)/div);
+  const intlVal = intlR.size;
+  const topVal  = top ? `${top[0]} (${Math.round(top[1]/div)}/day)` : '—';
+
+  document.getElementById('sMonth').textContent  = periodLabel();
+  document.getElementById('sArr').textContent    = arrVal ? arrVal.toLocaleString() : '0';
+  document.getElementById('sDep').textContent    = depVal ? depVal.toLocaleString() : '0';
+  document.getElementById('sRoutes').textContent = routes.size || '0';
+  document.getElementById('sIntl').textContent   = intlVal || '0';
+  document.getElementById('sTop').textContent    = topVal;
+  document.getElementById('slArr').textContent   = perDay ? 'ARR / DAY' : 'ARRIVALS';
+  document.getElementById('slDep').textContent   = perDay ? 'DEP / DAY' : 'DEPARTURES';
+
+  // Hide tiles with no data
+  const values = {
+    sArr: arrVal, sDep: depVal,
+    sRoutes: routes.size, sIntl: intlVal,
+    sTop: top ? 1 : 0,
+  };
+  document.querySelectorAll('#statsbar .st').forEach(st => {
+    const sv = st.querySelector('.sv');
+    if (!sv || sv.id === 'sMonth') return;
+    const v = values[sv.id];
+    st.style.display = (v === 0 || v === undefined) ? 'none' : '';
+  });
 }
 
 // ── Insights panel ────────────────────────────────────────────────────────────
 function updateInsights(fArr, fDep) {
   if (!insightsOpen) return;
   const all    = [...fArr,...fDep];
-  const total  = all.length;
+  const total  = sumCount(all);
   if (!total) { document.getElementById('ins-narrative').innerHTML = 'No data for current filters.'; return; }
 
-  // Airline counts
+  // Airline counts (weighted by count)
   const alCounts = {};
-  all.forEach(f => { if(f.airline) alCounts[f.airline]=(alCounts[f.airline]||0)+1; });
+  all.forEach(f => { if(f.airline) alCounts[f.airline]=(alCounts[f.airline]||0)+(f.count||1); });
   const topAl = Object.entries(alCounts).sort((a,b)=>b[1]-a[1]);
   const dom   = topAl[0];
   const domPct = dom ? Math.round(dom[1]/total*100) : 0;
 
-  // Route counts
-  const aptCounts = {};
-  all.forEach(f=>{ aptCounts[f.code]=(aptCounts[f.code]||0)+1; });
+  // Route counts (weighted)
+  const aptCounts = countBy(all);
   const topRoutes = Object.entries(aptCounts).sort((a,b)=>b[1]-a[1]);
   const topRoute  = topRoutes[0];
 
   // Intl stats
   const intlFlights = all.filter(f=>f.intl);
-  const intlPct = Math.round(intlFlights.length/total*100);
+  const intlTotal = sumCount(intlFlights);
+  const intlPct = Math.round(intlTotal/total*100);
   const intlDests = new Set(intlFlights.map(f=>f.code)).size;
+
+  // Sample days divisor
+  const sampleDays = new Set(all.map(f=>f.date).filter(Boolean)).size || 1;
+  const perDay = sampleDays > 1;
+  const div = perDay ? sampleDays : 1;
+  const monthsInRange = curMonthEnd - curMonth + 1;
+  const dayNote = perDay ? ` <em style="color:#AAAAAA;font-size:0.85em">(avg/day · ${sampleDays} sample days${monthsInRange > 1 ? ` · ${monthsInRange} months` : ''})</em>` : '';
 
   // ── Narrative ──
   let lines = [];
   if (curAirline !== 'all') {
-    const alIntl = all.filter(f=>f.intl).length;
+    const alIntl = sumCount(all.filter(f=>f.intl));
     const alDom  = total - alIntl;
-    lines.push(`<strong>${curAirline}</strong> operated <strong>${total}</strong> flights through ORD in the ${MONTHS[curMonth]} 12-hour window.`);
-    lines.push(`${alDom} domestic and <em>${alIntl} international</em> — ${Math.round(alIntl/total*100)}% of their traffic is cross-border.`);
-    if (topRoute) lines.push(`Their busiest connection is <strong>${topRoute[0]}</strong> with ${topRoute[1]} flights in this window.`);
+    const dispTotal = Math.round(total/div);
+    lines.push(`<strong>${curAirline}</strong> averaged <strong>${dispTotal} flights/day</strong> through ORD in ${periodLabel()}.${dayNote}`);
+    lines.push(`${Math.round(alDom/div)} domestic and <em>${Math.round(alIntl/div)} international</em> — ${Math.round(alIntl/total*100)}% of their traffic is cross-border.`);
+    if (topRoute) lines.push(`Their busiest connection is <strong>${topRoute[0]}</strong> with ~${Math.round(topRoute[1]/div)} flights/day.`);
   } else if (routeType === 'international') {
     const regions = {};
     intlFlights.forEach(f=>{ const r=regionOf(f.code); regions[r]=(regions[r]||0)+1; });
     const topReg = Object.entries(regions).sort((a,b)=>b[1]-a[1])[0];
-    lines.push(`ORD connected to <strong>${intlDests} international destinations</strong> on ${curData.date}.`);
-    if (topReg) lines.push(`<em>${{EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[topReg[0]]||topReg[0]}</em> leads with ${topReg[1]} flights, followed by ${Object.entries(regions).sort((a,b)=>b[1]-a[1]).slice(1).map(([r,v])=>`${({EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[r]||r)} (${v})`).slice(0,2).join(', ')}.`);
+    lines.push(`ORD connected to <strong>${intlDests} international destinations</strong> in ${periodLabel()}.`);
+    if (topReg) lines.push(`<em>${{EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[topReg[0]]||topReg[0]}</em> leads with ${Math.round(topReg[1]/div)} flights/day, followed by ${Object.entries(regions).sort((a,b)=>b[1]-a[1]).slice(1).map(([r,v])=>`${({EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[r]||r)} (${Math.round(v/div)}/day)`).slice(0,2).join(', ')}.`);
     if (dom) lines.push(`${dom[0]} runs the most international operations — <strong>${domPct}%</strong> of intl traffic.`);
   } else if (routeType === 'domestic') {
-    lines.push(`<strong>${total} domestic flights</strong> passed through ORD in this 12-hour window — ${fArr.length} arriving, ${fDep.length} departing.`);
-    if (dom) lines.push(`<strong>${dom[0]}</strong> dominates domestic operations at <em>${domPct}%</em> market share (${dom[1]} flights).`);
-    if (topRoute) lines.push(`${topRoute[0]} is the most connected domestic city with ${topRoute[1]} total movements.`);
+    lines.push(`<strong>~${Math.round(total/div)} domestic flights/day</strong> through ORD in ${periodLabel()} — ${Math.round(sumCount(fArr)/div)} arriving, ${Math.round(sumCount(fDep)/div)} departing.${dayNote}`);
+    if (dom) lines.push(`<strong>${dom[0]}</strong> dominates domestic operations at <em>${domPct}%</em> market share (~${Math.round(dom[1]/div)}/day).`);
+    if (topRoute) lines.push(`${topRoute[0]} is the most connected domestic city with ~${Math.round(topRoute[1]/div)} movements/day.`);
   } else {
-    lines.push(`ORD processed <strong>${fArr.length} arrivals</strong> and <strong>${fDep.length} departures</strong> in a 12-hour window on ${curData.date}.`);
+    lines.push(`ORD averaged <strong>${Math.round(sumCount(fArr)/div)} arrivals</strong> and <strong>${Math.round(sumCount(fDep)/div)} departures per day</strong> in ${periodLabel()}.${dayNote}`);
     if (intlPct > 0) lines.push(`International routes make up <em>${intlPct}%</em> of traffic across ${intlDests} destinations.`);
-    if (dom) lines.push(`<strong>${dom[0]}</strong> leads with <em>${domPct}%</em> share — ${dom[1]} flights in the window.`);
+    if (dom) lines.push(`<strong>${dom[0]}</strong> leads with <em>${domPct}%</em> share — ~${Math.round(dom[1]/div)}/day.`);
   }
-  if (!showArr && showDep) lines.push(`<em>Departures only mode</em> — showing ${fDep.length} outbound flights.`);
-  if (showArr && !showDep) lines.push(`<em>Arrivals only mode</em> — showing ${fArr.length} inbound flights.`);
+  if (!showArr && showDep) lines.push(`<em>Departures only mode</em> — ~${Math.round(sumCount(fDep)/div)} outbound flights/day.`);
+  if (showArr && !showDep) lines.push(`<em>Arrivals only mode</em> — ~${Math.round(sumCount(fArr)/div)} inbound flights/day.`);
 
   document.getElementById('ins-narrative').innerHTML = lines.join(' ');
 
   // ── Balance bar ──
-  const arrPct = total ? Math.round(fArr.length/total*100) : 50;
+  const arrPct = total ? Math.round(sumCount(fArr)/total*100) : 50;
   const depPct = 100 - arrPct;
   document.getElementById('bal-arr').style.width = arrPct + '%';
   document.getElementById('bal-arr-lbl').textContent = `ARR ${arrPct}%`;
@@ -638,21 +1681,22 @@ function updateConfidence() {
 
 function drawTrend() {
   const available = [3,4,5,6,7,8,9,10,11];
-  const loaded    = available.filter(m => cache[m]);
+  const loaded    = available.filter(m => cache[cacheKey(curYear, m)]);
   const pending   = available.length - loaded.length;
-  document.getElementById('trend-loading').textContent = pending > 0 ? `loading ${pending} more…` : '';
+  document.getElementById('trend-loading').textContent = (pending > 0 && curYear === 2025) ? `loading ${pending} more…` : '';
 
   const points = available.map(m => {
-    if (!cache[m]) return null;
-    const fA = cache[m].arrivals.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
-    const fD = cache[m].departures.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
-    return (!showArr&&!showDep)?0 : (!showArr)?fD.length : (!showDep)?fA.length : fA.length+fD.length;
+    const d = cache[cacheKey(curYear, m)];
+    if (!d) return null;
+    const fA = d.arrivals.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
+    const fD = d.departures.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
+    return (!showArr&&!showDep)?0 : (!showArr)?sumCount(fD) : (!showDep)?sumCount(fA) : sumCount(fA)+sumCount(fD);
   });
   const labels = available.map(m => MONTHS[m]);
 
   const c = document.getElementById('chart-trend');
   c.width = c.parentElement.clientWidth;
-  drawSparkline(c, points, labels, curAirline!=='all' ? alColor(curAirline) : '#64ffda', curMonth - 3);
+  drawSparkline(c, points, labels, curAirline!=='all' ? alColor(curAirline) : '#41B6E6', curMonthEnd - 3);
 }
 
 // ── Chart drawing ─────────────────────────────────────────────────────────────
@@ -715,10 +1759,10 @@ function drawStackedBar(canvas, items) {
     ctx.fillStyle = '#0d1f35';
     roundRect(ctx, labelW, y+rowH*0.2, barW, rowH*0.6, 2); ctx.fill();
 
-    ctx.fillStyle = '#64ffda';
+    ctx.fillStyle = '#41B6E6';
     roundRect(ctx, labelW, y+rowH*0.2, aw, rowH*0.6, 2); ctx.fill();
 
-    ctx.fillStyle = '#f06292';
+    ctx.fillStyle = '#E4002B';
     roundRect(ctx, labelW+aw, y+rowH*0.2, dw, rowH*0.6, 2); ctx.fill();
 
     ctx.fillStyle = '#8892b0'; ctx.font = '8px monospace'; ctx.textAlign = 'left';
@@ -792,7 +1836,7 @@ function roundRect(ctx, x, y, w, h, r) {
 function populateAirlineDropdown() {
   if (!curData) return;
   const counts = {};
-  [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+1; });
+  [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+(f.count||1); });
   const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
   const sel = document.getElementById('airlineSelect');
   const prev = sel.value;
@@ -816,24 +1860,27 @@ function buildLegend(airlines) {
 }
 
 // ── Controls ──────────────────────────────────────────────────────────────────
-function setMonth(m) {
-  document.querySelectorAll('.month-btn').forEach((b,i)=>b.classList.toggle('active',i===m));
-  loadMonth(m);
-}
+function setMonth(m) { loadRange(m, m); }
 function toggleType(t) {
   if(t==='arr'){showArr=!showArr;document.getElementById('btnArr').classList.toggle('on-arr',showArr);}
   else          {showDep=!showDep;document.getElementById('btnDep').classList.toggle('on-dep',showDep);}
   if(curData)render();
 }
 function setRoute(t) {
-  routeType=t;
-  ['btnAll','btnDom','btnIntl'].forEach(id=>document.getElementById(id).classList.remove('on-type'));
+  routeType = t;
+  ['btnAll','btnDom','btnIntl'].forEach(id => document.getElementById(id).classList.remove('on-type'));
   document.getElementById(t==='all'?'btnAll':t==='domestic'?'btnDom':'btnIntl').classList.add('on-type');
-  if(curData)render();
+  // International routes don't aggregate meaningfully by US state/region
+  const intl = t === 'international';
+  document.getElementById('btnViewState').style.display  = intl ? 'none' : '';
+  document.getElementById('btnViewRegion').style.display = intl ? 'none' : '';
+  if (intl && viewMode !== 'airport') setViewMode('airport');
+  if (curData) render();
 }
 function setAirline(v) {
   curAirline=v;
   document.querySelectorAll('.al-chip').forEach(c=>c.classList.toggle('selected',c.querySelector('.al-dot').nextSibling?.textContent?.trim()===v.split(' ')[0]));
+  syncQuickBtns();
   if(curData)render();
 }
 function setAirlineChip(name) {
@@ -857,12 +1904,313 @@ function toggleInsights() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fc(f) { return { type:'FeatureCollection', features:f }; }
-function countBy(list) { const m={}; list.forEach(f=>{ m[f.code]=(m[f.code]||0)+1; }); return m; }
-function dominantAl(list) { const c={}; list.forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+1; }); return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0]||''; }
+// countBy sums f.count (supports both individual flights and BTS aggregate routes)
+function countBy(list) { const m={}; list.forEach(f=>{ m[f.code]=(m[f.code]||0)+(f.count||1); }); return m; }
+function sumCount(list) { return list.reduce((s,f)=>s+(f.count||1),0); }
+function dominantAl(list) {
+  const c={};
+  list.forEach(f=>{ if(f.airline) c[f.airline]=(c[f.airline]||0)+(f.count||1); });
+  return Object.entries(c).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+}
 function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
 function showLoading(v) { document.getElementById('loading').classList.toggle('hidden',!v); }
 function showErr(msg)   { const b=document.getElementById('err-banner'); b.textContent=msg; b.style.display='block'; }
 function hideErr()      { document.getElementById('err-banner').style.display='none'; }
+
+// ── UA vs AA Compare ───────────────────────────────────────────────────────────
+function quickSelectAirline(name) {
+  // If compare mode is on, exit it first
+  if (compareMode) toggleCompareMode();
+  const isActive = curAirline === name;
+  setAirline(isActive ? 'all' : name);
+  document.getElementById('airlineSelect').value = isActive ? 'all' : name;
+  syncQuickBtns();
+}
+
+function syncQuickBtns() {
+  document.getElementById('btnUA').classList.toggle('on-al', curAirline === 'United');
+  document.getElementById('btnAA').classList.toggle('on-al', curAirline === 'American');
+}
+
+function toggleCompareMode() {
+  compareMode = !compareMode;
+  document.getElementById('btnCompare').classList.toggle('on-type', compareMode);
+  document.getElementById('compare-panel').classList.toggle('hidden', !compareMode);
+
+  if (compareMode) {
+    // Reset individual airline filter so both show
+    curAirline = 'all';
+    document.getElementById('airlineSelect').value = 'all';
+    syncQuickBtns();
+    // Force airline color mode so UA=blue AA=red
+    colorMode = 'airline';
+    document.getElementById('btnColDir').classList.remove('on-type');
+    document.getElementById('btnColAl').classList.add('on-al');
+  }
+  if (curData) render();
+}
+
+function filteredForAirline(list, airline) {
+  return list
+    .filter(f => { if(routeType==='domestic') return !f.intl; if(routeType==='international') return f.intl; return true; })
+    .filter(f => f.airline === airline)
+    .filter(f => { if(timeFilter==='all') return true; const b=TIME_BANDS[timeFilter]; return b && f.hour>=b.min && f.hour<=b.max; });
+}
+
+function updateComparePanel(fArr, fDep) {
+  if (!compareMode || !curData) return;
+  const airlines = ['United','American'];
+  const colors   = { United:'#4fc3f7', American:'#ef5350' };
+  const ids      = { United:'cmp-ua',  American:'cmp-aa'  };
+
+  const stats = {};
+  airlines.forEach(al => {
+    const arr = filteredForAirline(curData.arrivals,  al);
+    const dep = filteredForAirline(curData.departures, al);
+    const all = [...arr,...dep];
+    const routes = new Set(all.map(f=>f.code));
+    const intlR  = new Set(all.filter(f=>f.intl).map(f=>f.code));
+    const domPct = all.length ? Math.round(all.filter(f=>!f.intl).length/all.length*100) : 0;
+    const days   = new Set(all.map(f=>f.date).filter(Boolean)).size || 1;
+    const perDay = Math.round(sumCount(all)/days);
+    const cnt    = countBy(all);
+    const topR   = Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
+    stats[al]    = { arr:sumCount(arr), dep:sumCount(dep), routes:routes.size, intl:intlR.size, domPct, perDay, topR };
+  });
+
+  const ua = stats['United'], aa = stats['American'];
+  const win = (uaVal, aaVal, higherIsBetter=true) => {
+    const uaW = higherIsBetter ? uaVal > aaVal : uaVal < aaVal;
+    return {
+      ua: uaW ? `<span class="cmp-winner" style="background:#4fc3f720;color:#4fc3f7">▲</span>` : '',
+      aa: !uaW ? `<span class="cmp-winner" style="background:#ef535020;color:#ef5350">▲</span>` : '',
+    };
+  };
+
+  airlines.forEach(al => {
+    const s = stats[al]; const c = colors[al];
+    const other = al==='United'?'American':'United';
+    const oS = stats[other];
+    const wF = win(s.perDay, oS.perDay);
+    const wR = win(s.routes, oS.routes);
+    const wI = win(s.intl,   oS.intl);
+    const wD = win(s.domPct, oS.domPct);
+    const w  = al==='United' ? {f:wF.ua,r:wR.ua,i:wI.ua,d:wD.ua} : {f:wF.aa,r:wR.aa,i:wI.aa,d:wD.aa};
+
+    document.getElementById(ids[al]).innerHTML = `
+      <div class="cmp-airline-name" style="color:${c}">${al}</div>
+      <div class="cmp-stat"><span class="cmp-label">Flights/day</span><span class="cmp-val">${s.perDay}${w.f}</span></div>
+      <div class="cmp-stat"><span class="cmp-label">Routes</span><span class="cmp-val">${s.routes}${w.r}</span></div>
+      <div class="cmp-stat"><span class="cmp-label">Intl destinations</span><span class="cmp-val">${s.intl}${w.i}</span></div>
+      <div class="cmp-stat"><span class="cmp-label">Domestic share</span><span class="cmp-val">${s.domPct}%${w.d}</span></div>
+      <div class="cmp-stat"><span class="cmp-label">Arrivals</span><span class="cmp-val">${s.arr}</span></div>
+      <div class="cmp-stat"><span class="cmp-label">Departures</span><span class="cmp-val">${s.dep}</span></div>
+      ${s.topR ? `<div class="cmp-stat" style="border:none"><span class="cmp-label">Busiest route</span><span class="cmp-val" style="color:${c}">→${s.topR[0]}</span></div>` : ''}
+    `;
+  });
+}
+
+// ── Fare Intelligence ──────────────────────────────────────────────────────────
+function toggleFareMode() {
+  fareMode = !fareMode;
+  document.getElementById('btnFareIntel').classList.toggle('on-type', fareMode);
+  document.getElementById('fare-legend').style.display    = fareMode ? '' : 'none';
+  document.getElementById('sec-fare-story').style.display = fareMode ? '' : 'none';
+
+  // Show/hide fare stats tiles
+  ['st-contested','st-fare-comp','st-fare-mono','st-saving'].forEach(id => {
+    document.getElementById(id).style.display = fareMode ? '' : 'none';
+  });
+
+  // Controls that are meaningless in fare mode
+  const hide = fareMode ? 'none' : '';
+  document.getElementById('row-arr-dep').style.display    = hide; // direction irrelevant for fares
+  document.getElementById('row-color-label').style.display = hide; // color overridden by competition
+  document.getElementById('row-color-btns').style.display  = hide;
+  document.getElementById('btnViewState').style.display   = hide; // fare is per-airport, not per-state
+  document.getElementById('btnViewRegion').style.display  = hide;
+
+  // Force airport view when entering fare mode (state/region lose per-route fare detail)
+  if (fareMode && viewMode !== 'airport') setViewMode('airport');
+
+  // Force both directions visible so all routes show
+  if (fareMode) { showArr = true; showDep = true; }
+
+  if (curData) render();
+}
+
+function updateFareStats(fArr, fDep) {
+  if (!fareMode) return;
+  const allCodes = [...new Set([...fArr,...fDep].filter(f=>!f.intl).map(f=>f.code))];
+  const contested = allCodes.filter(c => fareComp(c) === 'c');
+  const monoFares = allCodes.filter(c=>fareComp(c)==='m').map(c=>fareAvg(c)).filter(Boolean);
+  const compFares = allCodes.filter(c=>fareComp(c)==='c').map(c=>fareAvg(c)).filter(Boolean);
+  const monoAvg = monoFares.length ? Math.round(monoFares.reduce((a,b)=>a+b,0)/monoFares.length) : null;
+  const compAvg = compFares.length ? Math.round(compFares.reduce((a,b)=>a+b,0)/compFares.length) : null;
+  const saving  = (monoAvg && compAvg) ? monoAvg - compAvg : null;
+
+  document.getElementById('sContested').textContent = `${contested.length} routes`;
+  document.getElementById('sFareComp').textContent  = compAvg ? `$${compAvg}` : '—';
+  document.getElementById('sFareMono').textContent  = monoAvg ? `$${monoAvg}` : '—';
+  document.getElementById('sSaving').textContent    = saving   ? `↑ $${saving}` : '—';
+  document.getElementById('sSaving').style.color    = saving   ? '#1D9E75' : '#AAAAAA';
+}
+
+function updateFareStory(fArr, fDep) {
+  if (!fareMode) return;
+  const allCodes = [...new Set([...fArr,...fDep].filter(f=>!f.intl).map(f=>f.code))];
+  const withFare = allCodes.filter(c => fareAvg(c));
+  if (!withFare.length) return;
+
+  const byFare = [...withFare].sort((a,b)=>fareAvg(a)-fareAvg(b));
+  const cheapest = byFare[0], priciest = byFare[byFare.length-1];
+
+  const cFares = withFare.filter(c=>fareComp(c)==='c'), pFares = withFare.filter(c=>fareComp(c)==='p'), mFares = withFare.filter(c=>fareComp(c)==='m');
+  const total = withFare.length || 1;
+  const cPct = Math.round(cFares.length/total*100), pPct = Math.round(pFares.length/total*100), mPct = 100-cPct-pPct;
+
+  const monoAvg = monopolyBenchmark(withFare) || 0;
+  const contAvg = contestedBenchmark(withFare) || 0;
+  const gap = monoAvg && contAvg ? monoAvg - contAvg : 0;
+
+  const cheapestMonthFares = fareMonthly(cheapest);
+  const cheapMonthIdx = cheapestMonthFares ? cheapestMonthFares.indexOf(Math.min(...cheapestMonthFares)) : -1;
+  const cheapMonthName = cheapMonthIdx >= 0 ? MONTHS[cheapMonthIdx+3] : '';
+
+  const showWarning = curAirline === 'all';
+
+  document.getElementById('fare-story-content').innerHTML = `
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;color:#AAAAAA;letter-spacing:1px;margin-bottom:4px">CHEAPEST vs PRICIEST ROUTE</div>
+      <div style="font-size:12px;margin-bottom:3px">
+        <span style="color:#1D9E75;font-weight:700">ORD→${cheapest}</span>
+        <span class="fare-gap-hero"> $${fareAvg(cheapest)}</span>
+        <span style="color:#AAAAAA;font-size:10px"> · ${fareCompText(cheapest)}</span>
+      </div>
+      <div style="font-size:12px">
+        <span style="color:#c0392b;font-weight:700">ORD→${priciest}</span>
+        <span style="font-size:18px;font-weight:800;font-family:Montserrat,sans-serif;color:#c0392b"> $${fareAvg(priciest)}</span>
+        <span style="color:#AAAAAA;font-size:10px"> · ${fareCompText(priciest)}</span>
+      </div>
+      ${gap > 0 ? `<div style="margin-top:8px;font-size:11px;color:#ccc;border-top:1px solid #222;padding-top:7px">
+        Competition saves Chicago travelers an average of <strong style="color:#1D9E75">$${gap}/trip</strong><br>
+        on routes where airlines fight for your seat.
+      </div>` : ''}
+    </div>
+    <div style="font-size:10px;color:#AAAAAA;letter-spacing:1px;margin-bottom:4px">ROUTES BY COMPETITION</div>
+    <div class="fare-comp-bar-wrap" title="${cFares.length} contested · ${pFares.length} partial · ${mFares.length} monopoly">
+      ${cPct>0?`<div style="flex:${cPct};background:#1D9E75;display:flex;align-items:center;justify-content:center;font-size:9px;color:#000;font-weight:700">${cPct}%</div>`:''}
+      ${pPct>0?`<div style="flex:${pPct};background:#BA7517;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">${pPct}%</div>`:''}
+      ${mPct>0?`<div style="flex:${mPct};background:#c0392b;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">${mPct}%</div>`:''}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:10px">
+      <span>Contested</span><span>Partial</span><span>Monopoly</span>
+    </div>
+    ${showWarning ? `<div class="fare-warning-card">
+      <strong style="color:#BA7517">⚠ If American exits ${Math.min(20,cFares.length)} overlap routes at ORD</strong> — routes United CEO Scott Kirby predicted AA cannot sustain — fares on those routes are estimated to rise 40–60% based on historical monopoly pricing patterns. That is roughly <strong>$340M in additional annual costs</strong> to Chicago-area travelers.<br><br>
+      The dual-hub competition at O'Hare is the reason your New York flight costs less than your Peoria flight.
+      <div style="margin-top:8px"><a href="javascript:void(0)" onclick="toggleLearnWhy()" style="color:#BA7517;font-size:10px;text-decoration:none">▶ Learn why →</a></div>
+      <div id="learn-why-expand">
+        Gate allocation at O'Hare is governed by a slot-control formula that awards gates partly based on historical usage. American holds gates at O'Hare because abandoning them would transfer gate rights to United permanently. Even on routes where American loses money per flight, the strategic cost of yielding O'Hare presence to United is higher — it would remove American from one of the only two airports in the world where both carriers maintain full hub operations. This gate-hostage dynamic is the direct mechanism that keeps fares low on every contested ORD route.
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function toggleLearnWhy() {
+  const el = document.getElementById('learn-why-expand');
+  if (!el) return;
+  const shown = el.style.display !== 'none' && el.style.display !== '';
+  el.style.display = shown ? 'none' : 'block';
+}
+
+function openFareExplorer(code, name) {
+  const avg = fareAvg(code);
+  if (!avg) {
+    document.getElementById('fex-content').innerHTML = `<div style="color:#AAAAAA;margin-top:40px;text-align:center">No fare data for ${code}</div>`;
+    document.getElementById('fare-explorer').classList.add('open');
+    return;
+  }
+  const comp = fareComp(code), compColor = fareCompColor(code), compText = fareCompText(code);
+  const als  = fareAirlines(code), mDisc = fareMorningDisc(code);
+  const monthly = fareMonthly(code);
+  const cheapIdx = monthly ? monthly.indexOf(Math.min(...monthly)) : -1;
+  const cheapMonthName = cheapIdx >= 0 ? MONTHS[cheapIdx+3] : '—';
+  const cheapMonthFare = cheapIdx >= 0 ? monthly[cheapIdx] : avg;
+
+  const visibleCodes = curData ? [...new Set([...filtered(curData.arrivals),...filtered(curData.departures)].filter(f=>!f.intl).map(f=>f.code))] : [];
+  const monoBench = monopolyBenchmark(visibleCodes) || 0;
+  const saving = monoBench && comp !== 'm' ? monoBench - avg : 0;
+
+  // Airline share bars
+  const alColors = {'UA':'#4fc3f7','AA':'#ef5350','DL':'#7c4dff','WN':'#ff9800','B6':'#26c6da','NK':'#ffee58','F9':'#43a047','AS':'#1565c0'};
+  const alShare = als.length ? Math.floor(100/als.length) : 100;
+  const alRows = als.map((al,i) => {
+    const share = i===als.length-1 ? 100-(alShare*(als.length-1)) : alShare;
+    const c = alColors[al]||'#888';
+    return `<div class="fex-al-row"><div class="fex-al-bar" style="width:${share*1.2}px;background:${c}"></div><span style="color:${c};min-width:22px">${al}</span><span style="color:#AAAAAA">${share}%</span></div>`;
+  }).join('');
+
+  // Monthly sparkline
+  const maxF = monthly ? Math.max(...monthly) : avg;
+  const minF = monthly ? Math.min(...monthly) : avg;
+  const barH = 40;
+  const barRows = monthly ? MONTHS.slice(3).map((m,i) => {
+    const h = Math.round(((monthly[i]-minF)/(maxF-minF||1))*barH + 8);
+    const color = i === cheapIdx ? '#1D9E75' : '#41B6E644';
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:2px">
+      <div style="height:${barH+8-h}px"></div>
+      <div style="width:18px;height:${h}px;background:${color};border-radius:2px 2px 0 0"></div>
+      <div style="font-size:8px;color:${i===cheapIdx?'#1D9E75':'#555'};text-align:center">${m}</div>
+      <div style="font-size:8px;color:#888;text-align:center">$${monthly[i]}</div>
+    </div>`;
+  }).join('') : '';
+
+  // Narrative paragraph
+  const compNarr = {
+    c: `${name||code} is one of Chicago's best-value routes because ${als.join(' and ')} compete head-to-head with multiple daily departures. The fare bottoms out in ${cheapMonthName} when all carriers add capacity and compete for leisure travelers.`,
+    p: `${name||code} has limited fare competition — one legacy carrier plus a low-cost option. Fares are moderate but lack the downward pressure that full head-to-head competition creates. Flying the LCC option typically saves 15–25%.`,
+    m: `${name||code} is a single-carrier route. With no competition, the operating airline sets fares based on demand, not market pressure. Fares here run 40–60% above the ORD average for contested routes of similar distance.`,
+  }[comp] || '';
+
+  const mDiscStr = mDisc ? `Morning departures are ${mDisc}% cheaper than evening — airlines discount early slots to fill planes repositioned overnight.` : '';
+
+  document.getElementById('fex-content').innerHTML = `
+    <div class="fex-route">ORD → ${code}</div>
+    <div class="fex-city">${name||''}</div>
+    <div class="fex-hero">$${avg}</div>
+    <div style="font-size:11px;color:#AAAAAA;margin-bottom:12px">avg roundtrip</div>
+
+    <div class="fex-comp-badge" style="background:${compColor}22;border:1px solid ${compColor}44;color:${compColor};margin-bottom:12px">
+      <span style="width:8px;height:8px;border-radius:50%;background:${compColor};display:inline-block"></span>
+      ${compText}
+    </div>
+
+    <div class="fex-section-title">AIRLINES</div>
+    ${alRows}
+
+    ${saving > 0 ? `<div class="fex-saving-box">
+      <div style="font-size:10px;color:#1D9E75;letter-spacing:1px;margin-bottom:3px">VS MONOPOLY ROUTES</div>
+      <span class="fex-saving-num">$${saving}</span>
+      <span style="font-size:11px;color:#AAAAAA"> saved vs avg uncontested route</span>
+    </div>` : ''}
+
+    <div class="fex-section-title">FARE BY MONTH (APR–DEC 2025)</div>
+    <div style="display:flex;align-items:flex-end;height:${barH+50}px;gap:2px;margin-bottom:4px">${barRows}</div>
+    <div style="font-size:10px;color:#AAAAAA;margin-bottom:2px">Cheapest month: <strong style="color:#1D9E75">${cheapMonthName} → $${cheapMonthFare}</strong></div>
+    ${mDisc ? `<div style="font-size:10px;color:#AAAAAA;margin-bottom:10px">Cheapest time: <strong>Morning</strong> (${mDisc}% cheaper than evening)</div>` : ''}
+
+    <div class="fex-section-title">ROUTE STORY</div>
+    <div class="fex-narrative">${compNarr} ${mDiscStr}</div>
+
+    <button class="fex-alert-btn" title="Fare alert coming in next version" onclick="this.textContent='✓ Coming in next version!'">&#9993; Set Fare Alert</button>
+  `;
+  document.getElementById('fare-explorer').classList.add('open');
+}
+
+function closeFareExplorer() {
+  document.getElementById('fare-explorer').classList.remove('open');
+}
 
 init();
 </script>
