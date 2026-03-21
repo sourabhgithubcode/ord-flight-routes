@@ -63,7 +63,7 @@ body {
 #sidebar::-webkit-scrollbar { width:3px; }
 #sidebar::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:2px; }
 
-.ctrl-section { padding:16px 16px 14px; border-bottom:1px solid var(--border); }
+.ctrl-section { padding:20px 18px 18px; border-bottom:1px solid var(--border); }
 .ctrl-section-title {
   font-family:'Montserrat', sans-serif;
   font-size:13px; color:var(--blue); letter-spacing:2px;
@@ -186,13 +186,13 @@ select#airlineSelect:focus { border-color:var(--blue); }
 /* ── Stats bar ── */
 #statsbar {
   background:#0a0a0a; border-top:1px solid var(--border);
-  padding:10px 22px; display:flex; gap:32px;
+  padding:12px 28px; display:flex; gap:44px;
   align-items:center; justify-content:center; flex-shrink:0; flex-wrap:wrap;
 }
 .st { text-align:center; }
 .sv {
   font-family:'JetBrains Mono', monospace;
-  font-size:22px; font-weight:600; font-variant-numeric:tabular-nums;
+  font-size:24px; font-weight:600; font-variant-numeric:tabular-nums;
 }
 .sl {
   font-family:'Montserrat', sans-serif;
@@ -428,11 +428,42 @@ select#airlineSelect:focus { border-color:var(--blue); }
   padding:4px 8px; line-height:1;
 }
 
+/* ── Filters accordion ── */
+#filters-accordion { overflow:hidden; max-height:0; transition:max-height .35s ease; }
+#filters-accordion.open { max-height:900px; }
+#filters-toggle {
+  width:100%; background:none; border:none; border-bottom:1px solid var(--border);
+  color:var(--text-muted); font-size:11px; font-family:'Montserrat',sans-serif;
+  font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  padding:13px 18px; cursor:pointer; display:flex; justify-content:space-between;
+  align-items:center; transition:color .15s;
+}
+#filters-toggle:hover { color:var(--text); }
+#filters-arrow { transition:transform .3s; font-size:10px; }
+#filters-accordion.open ~ * #filters-arrow,
+#filters-toggle.open #filters-arrow { transform:rotate(180deg); }
+
+/* ── Insights show-more ── */
+#ins-more { overflow:hidden; max-height:0; transition:max-height .35s ease; }
+#ins-more.open { max-height:800px; }
+#ins-more-btn {
+  background:none; border:1px solid var(--border); border-radius:4px;
+  color:var(--text-muted); font-size:10px; font-family:'Montserrat',sans-serif;
+  font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+  padding:7px 12px; cursor:pointer; width:100%; transition:all .15s;
+}
+#ins-more-btn:hover { border-color:var(--blue); color:var(--blue); }
+
+/* ── Draggable compare panel ── */
+#compare-panel {
+  cursor:default; user-select:none;
+}
+#compare-panel-hdr { cursor:move; }
+
 /* ── Secondary filter sections ── */
-.ctrl-section.secondary { opacity:0.72; }
+.ctrl-section.secondary { opacity:0.75; }
 .ctrl-section.secondary .ctrl-section-title {
-  font-size:10px; color:var(--text-muted); border-left-color:var(--border-hi);
-  letter-spacing:1.5px;
+  font-size:11px; color:var(--text-muted); border-left-color:var(--border-hi);
 }
 .ctrl-section.secondary:hover { opacity:1; transition:opacity .2s; }
 
@@ -606,64 +637,66 @@ select#airlineSelect:focus { border-color:var(--blue); }
       </div>
     </div>
 
-    <!-- ── FILTERS (secondary) ── -->
-
-    <!-- TIME PERIOD -->
-    <div class="ctrl-section secondary">
-      <div class="ctrl-section-title">&#128197; Time Period · 2025</div>
+    <!-- TIME PERIOD always visible -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#128197; Period · 2025</div>
       <div class="ctrl-sub-label" id="rangeLabel">Select a month</div>
       <div id="monthBtns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;"></div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:5px;line-height:1.4">Tap once to select · Tap second for range · Double-tap for single</div>
+      <div style="font-size:10px;color:#444;margin-top:6px">Tap · Tap second for range · Double-tap single</div>
     </div>
 
-    <!-- TRAFFIC -->
-    <div class="ctrl-section secondary">
-      <div class="ctrl-section-title">&#9992; Traffic &amp; Route</div>
-      <div id="row-arr-dep" class="ctrl-row">
-        <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arrivals</button>
-        <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Departures</button>
-      </div>
-      <div class="ctrl-sub-label">Route Type</div>
-      <div class="ctrl-row">
-        <button class="tog on-type" id="btnAll"  onclick="setRoute('all')" style="flex:1">All</button>
-        <button class="tog"         id="btnDom"  onclick="setRoute('domestic')" style="flex:1">Dom</button>
-        <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
-      </div>
-    </div>
+    <!-- FILTERS accordion -->
+    <button id="filters-toggle" onclick="toggleFilters()">
+      <span>&#9881; Filters</span>
+      <span id="filters-arrow">&#9660;</span>
+    </button>
+    <div id="filters-accordion">
 
-    <!-- AIRLINE SELECT -->
-    <div class="ctrl-section secondary">
-      <div class="ctrl-section-title">&#9992; All Airlines</div>
-      <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
-    </div>
+      <div class="ctrl-section secondary">
+        <div class="ctrl-section-title">Traffic &amp; Route</div>
+        <div id="row-arr-dep" class="ctrl-row">
+          <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arr</button>
+          <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Dep</button>
+        </div>
+        <div class="ctrl-sub-label">Route Type</div>
+        <div class="ctrl-row">
+          <button class="tog on-type" id="btnAll"  onclick="setRoute('all')" style="flex:1">All</button>
+          <button class="tog"         id="btnDom"  onclick="setRoute('domestic')" style="flex:1">Domestic</button>
+          <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
+        </div>
+      </div>
 
-    <!-- TIME OF DAY -->
-    <div class="ctrl-section secondary">
-      <div class="ctrl-section-title">&#9200; Time of Day</div>
-      <div class="time-grid">
-        <button class="tog on-type" id="btnTAll"   onclick="setTimeFilter('all')">All Day</button>
-        <button class="tog"         id="btnTMorn"  onclick="setTimeFilter('morning')">Morning<span class="sub">6 – 11 AM</span></button>
-        <button class="tog"         id="btnTAftn"  onclick="setTimeFilter('afternoon')">Afternoon<span class="sub">12 – 5 PM</span></button>
-        <button class="tog"         id="btnTEvng"  onclick="setTimeFilter('evening')">Evening<span class="sub">6 – 11 PM</span></button>
-        <button class="tog"         id="btnTNight" onclick="setTimeFilter('night')">Night<span class="sub">12 – 5 AM</span></button>
+      <div class="ctrl-section secondary">
+        <div class="ctrl-section-title">Airline</div>
+        <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
       </div>
-    </div>
 
-    <!-- VISUALIZATION -->
-    <div class="ctrl-section secondary">
-      <div class="ctrl-section-title">&#127758; Visualization</div>
-      <div class="ctrl-sub-label">View Level</div>
-      <div class="ctrl-row">
-        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
-        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
-        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
+      <div class="ctrl-section secondary">
+        <div class="ctrl-section-title">Time of Day</div>
+        <div class="time-grid">
+          <button class="tog on-type" id="btnTAll"   onclick="setTimeFilter('all')">All Day</button>
+          <button class="tog"         id="btnTMorn"  onclick="setTimeFilter('morning')">Morning<span class="sub">6–11 AM</span></button>
+          <button class="tog"         id="btnTAftn"  onclick="setTimeFilter('afternoon')">Afternoon<span class="sub">12–5 PM</span></button>
+          <button class="tog"         id="btnTEvng"  onclick="setTimeFilter('evening')">Evening<span class="sub">6–11 PM</span></button>
+          <button class="tog"         id="btnTNight" onclick="setTimeFilter('night')">Night<span class="sub">12–5 AM</span></button>
+        </div>
       </div>
-      <div id="row-color-label" class="ctrl-sub-label">Color Arcs By</div>
-      <div id="row-color-btns" class="ctrl-row">
-        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">Direction</button>
-        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">Airline</button>
+
+      <div class="ctrl-section secondary">
+        <div class="ctrl-section-title">View</div>
+        <div class="ctrl-row" style="margin-bottom:8px">
+          <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
+          <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
+          <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
+        </div>
+        <div id="row-color-btns" class="ctrl-row">
+          <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
+          <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
+        </div>
+        <div id="row-color-label" style="display:none"></div>
       </div>
-    </div>
+
+    </div><!-- /filters-accordion -->
 
   </div><!-- /sidebar -->
 
@@ -728,73 +761,73 @@ select#airlineSelect:focus { border-color:var(--blue); }
         <canvas id="chart1" class="ins-canvas" height="130"></canvas>
       </div>
 
-      <div class="ins-section" id="sec-chart2">
-        <div class="ins-label" id="chart2-label">Top Routes</div>
-        <canvas id="chart2" class="ins-canvas" height="120"></canvas>
-      </div>
+      <button id="ins-more-btn" onclick="toggleInsightsMore()">&#9660; Show more</button>
+      <div id="ins-more">
 
-      <div class="ins-section">
-        <div class="ins-label" style="display:flex;justify-content:space-between">
-          <span>Monthly Trend (Apr–Dec)</span>
-          <span id="trend-loading" style="font-size:8px;color:#8892b0"></span>
+        <div class="ins-section" id="sec-chart2">
+          <div class="ins-label" id="chart2-label">Top Routes</div>
+          <canvas id="chart2" class="ins-canvas" height="120"></canvas>
         </div>
-        <canvas id="chart-trend" class="ins-canvas" height="80"></canvas>
-      </div>
 
-      <div class="ins-section">
-        <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
-          <span>Data Confidence</span>
-          <span id="conf-pct" style="font-size:13px;font-weight:bold;color:#64ffda">—</span>
+        <div class="ins-section">
+          <div class="ins-label" style="display:flex;justify-content:space-between">
+            <span>Monthly Trend</span>
+            <span id="trend-loading" style="font-size:8px;color:#555"></span>
+          </div>
+          <canvas id="chart-trend" class="ins-canvas" height="80"></canvas>
         </div>
-        <div id="ins-confidence">
-          <div id="conf-bar-wrap" style="height:6px;background:#0d1f35;border-radius:4px;overflow:hidden;margin-bottom:5px">
+
+        <div class="ins-section">
+          <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
+            <span>Data Confidence</span>
+            <span id="conf-pct" style="font-size:13px;font-weight:bold;color:#41B6E6">—</span>
+          </div>
+          <div id="conf-bar-wrap" style="height:5px;background:#1a1a1a;border-radius:4px;overflow:hidden;margin-bottom:5px">
             <div id="conf-bar" style="height:100%;border-radius:4px;transition:width .5s ease;width:0%"></div>
           </div>
-          <div id="conf-coverage" style="font-size:11px;color:#8892b0"></div>
+          <div id="conf-coverage" style="font-size:11px;color:#555"></div>
         </div>
-      </div>
 
-      <div class="ins-section" id="sec-bts">
-        <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
-          <span>BTS Validation</span>
-          <span id="bts-badge" style="font-size:10px;padding:2px 7px;border-radius:3px;background:#1d3557;color:#8892b0">loading</span>
+        <div class="ins-section" id="sec-bts">
+          <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
+            <span>BTS Validation</span>
+            <span id="bts-badge" style="font-size:10px;padding:2px 7px;border-radius:3px;background:#111;color:#555">loading</span>
+          </div>
+          <div id="ins-bts" style="font-size:11px;color:#555;line-height:1.5"></div>
         </div>
-        <div id="ins-bts" style="font-size:11px;color:#8892b0;line-height:1.5"></div>
-      </div>
+
+      </div><!-- /ins-more -->
 
     </div>
   </div><!-- /insights -->
   </div><!-- /map-wrap -->
 </div><!-- /main -->
 
-<!-- Stats bar -->
+<!-- Stats bar — 4 primary KPIs always visible -->
 <div id="statsbar">
   <div class="st"><div class="sv" id="sMonth"  style="color:#41B6E6">—</div><div class="sl">PERIOD</div></div>
-  <div class="st"><div class="sv" id="sArr"    style="color:#41B6E6">0</div><div class="sl" id="slArr">ARRIVALS</div></div>
-  <div class="st"><div class="sv" id="sDep"    style="color:#E4002B">0</div><div class="sl" id="slDep">DEPARTURES</div></div>
-  <div class="st"><div class="sv" id="sRoutes" style="color:#2E8540">0</div><div class="sl">ROUTES</div></div>
-  <div class="st"><div class="sv" id="sIntl"   style="color:#F5A623">0</div><div class="sl">INTL ROUTES</div></div>
+  <div class="st"><div class="sv" id="sArr"    style="color:#41B6E6">0</div><div class="sl" id="slArr">ARR / DAY</div></div>
+  <div class="st"><div class="sv" id="sDep"    style="color:#E4002B">0</div><div class="sl" id="slDep">DEP / DAY</div></div>
   <div class="st"><div class="sv" id="sTop"    style="color:#FFFFFF">—</div><div class="sl">BUSIEST ROUTE</div></div>
+  <!-- hidden by default, shown in fare mode -->
+  <div class="st" style="display:none"><div class="sv" id="sRoutes" style="color:#2E8540">0</div><div class="sl">ROUTES</div></div>
+  <div class="st" style="display:none"><div class="sv" id="sIntl"   style="color:#F5A623">0</div><div class="sl">INTL ROUTES</div></div>
   <div class="st" id="st-contested"  style="display:none"><div class="sv" id="sContested"  style="color:#1D9E75">0</div><div class="sl">CONTESTED</div></div>
-  <div class="st" id="st-fare-comp"  style="display:none"><div class="sv" id="sFareComp"   style="color:#1D9E75">$—</div><div class="sl">AVG FARE (COMPETED)</div></div>
-  <div class="st" id="st-fare-mono"  style="display:none"><div class="sv" id="sFareMono"   style="color:#c0392b">$—</div><div class="sl">AVG FARE (MONOPOLY)</div></div>
-  <div class="st" id="st-saving"     style="display:none"><div class="sv" id="sSaving"     style="color:#1D9E75">$—</div><div class="sl">TRAVELER SAVING</div></div>
+  <div class="st" id="st-fare-comp"  style="display:none"><div class="sv" id="sFareComp"   style="color:#1D9E75">$—</div><div class="sl">COMPETED FARE</div></div>
+  <div class="st" id="st-fare-mono"  style="display:none"><div class="sv" id="sFareMono"   style="color:#c0392b">$—</div><div class="sl">MONOPOLY FARE</div></div>
+  <div class="st" id="st-saving"     style="display:none"><div class="sv" id="sSaving"     style="color:#1D9E75">$—</div><div class="sl">YOU SAVE</div></div>
 </div>
 
-<!-- Footer legend — single line -->
+<!-- Footer legend — minimal, contextual -->
 <div id="footer-legend">
-  <span class="fl-item"><div class="fl-line" style="background:#64ffda"></div>Arrivals</span>
-  <span class="fl-item"><div class="fl-line" style="background:#f06292"></div>Departures</span>
-  <span class="fl-item"><div class="fl-dot"  style="background:#4fc3f7"></div>Domestic airport</span>
-  <span class="fl-item"><div class="fl-dot"  style="background:#ffb74d"></div>International airport</span>
-  <span class="fl-item"><div class="fl-dot"  style="background:#a78bfa"></div>State/Region node</span>
-  <span class="fl-item" style="color:#555">·</span>
-  <span class="fl-item" style="color:#1D9E75">&#9670;</span>
-  <span class="fl-item" style="color:#555;font-size:10px">Contested &nbsp;</span>
-  <span class="fl-item" style="color:#BA7517">&#9670;</span>
-  <span class="fl-item" style="color:#555;font-size:10px">Partial &nbsp;</span>
-  <span class="fl-item" style="color:#c0392b">&#9670;</span>
-  <span class="fl-item" style="color:#555;font-size:10px">Monopoly</span>
+  <span class="fl-item"><div class="fl-line" style="background:#41B6E6"></div>Arrivals to ORD</span>
+  <span class="fl-item"><div class="fl-line" style="background:#E4002B"></div>Departures from ORD</span>
+  <span id="fl-fare-items" style="display:none;gap:16px;align-items:center">
+    <span class="fl-item" style="color:#555">·</span>
+    <span class="fl-item"><div class="fl-dot" style="background:#1D9E75"></div>Contested</span>
+    <span class="fl-item"><div class="fl-dot" style="background:#BA7517"></div>Partial</span>
+    <span class="fl-item"><div class="fl-dot" style="background:#c0392b"></div>Monopoly</span>
+  </span>
   <div id="al-legend"></div>
 </div>
 
@@ -2173,6 +2206,59 @@ function setColorMode(m) {
   document.getElementById('btnColAl').classList.toggle('on-al',m==='airline');
   if(curData)render();
 }
+function toggleFilters() {
+  const acc = document.getElementById('filters-accordion');
+  const btn = document.getElementById('filters-toggle');
+  const arrow = document.getElementById('filters-arrow');
+  acc.classList.toggle('open');
+  btn.classList.toggle('open');
+  arrow.style.transform = acc.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+function toggleInsightsMore() {
+  const more = document.getElementById('ins-more');
+  const btn  = document.getElementById('ins-more-btn');
+  more.classList.toggle('open');
+  btn.textContent = more.classList.contains('open') ? '▲ Show less' : '▼ Show more';
+  if (more.classList.contains('open') && curData) {
+    const fArr = showArr ? filtered(curData.arrivals)  : [];
+    const fDep = showDep ? filtered(curData.departures): [];
+    const c2 = document.getElementById('chart2');
+    c2.width = c2.parentElement.clientWidth;
+    drawTrend();
+  }
+}
+
+// ── Draggable compare panel ───────────────────────────────────────────────────
+(function initDraggable() {
+  document.addEventListener('DOMContentLoaded', () => {
+    const panel = document.getElementById('compare-panel');
+    const hdr   = document.getElementById('compare-panel-hdr');
+    if (!panel || !hdr) return;
+    let dragging = false, ox = 0, oy = 0;
+    hdr.addEventListener('mousedown', e => {
+      dragging = true;
+      const r = panel.getBoundingClientRect();
+      // Switch from CSS centering to absolute positioning on first drag
+      if (!panel.style.left) {
+        panel.style.left   = r.left + 'px';
+        panel.style.bottom = '';
+        panel.style.top    = r.top  + 'px';
+        panel.style.transform = 'none';
+      }
+      ox = e.clientX - panel.getBoundingClientRect().left;
+      oy = e.clientY - panel.getBoundingClientRect().top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      panel.style.left = (e.clientX - ox) + 'px';
+      panel.style.top  = (e.clientY - oy) + 'px';
+    });
+    document.addEventListener('mouseup', () => { dragging = false; });
+  });
+})();
+
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const bd = document.getElementById('sidebar-backdrop');
@@ -2305,6 +2391,9 @@ function toggleFareMode() {
   ['st-contested','st-fare-comp','st-fare-mono','st-saving'].forEach(id => {
     document.getElementById(id).style.display = fareMode ? '' : 'none';
   });
+  // Footer fare legend
+  const flFare = document.getElementById('fl-fare-items');
+  if (flFare) flFare.style.display = fareMode ? 'flex' : 'none';
 
   // Controls that are meaningless in fare mode
   const hide = fareMode ? 'none' : '';
