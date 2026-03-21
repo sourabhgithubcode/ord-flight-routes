@@ -368,8 +368,32 @@ select#airlineSelect:focus { border-color:var(--blue); }
 .rs-arr { color:#64ffda; }
 .rs-dep { color:#f06292; }
 
+/* ── Selected route chip ── */
+#route-selected-chip {
+  display:none; margin-top:8px;
+  background:#41B6E618; border:1px solid var(--blue);
+  border-radius:5px; padding:7px 10px;
+  display:none; align-items:center; justify-content:space-between;
+  gap:8px;
+}
+#route-chip-label {
+  font-family:'Montserrat',sans-serif; font-weight:800;
+  font-size:13px; color:var(--blue); flex:1;
+}
+#route-chip-name {
+  font-size:10px; color:#888; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; max-width:110px;
+}
+#route-chip-clear {
+  background:#E4002B22; border:1px solid #E4002B66;
+  color:#E4002B; cursor:pointer; font-size:15px; line-height:1;
+  padding:2px 8px; border-radius:4px; transition:all .15s; flex-shrink:0;
+  font-weight:700;
+}
+#route-chip-clear:hover { background:#E4002B; color:#fff; }
+
 #route-card {
-  display:none; margin-top:10px; background:#111;
+  display:none; margin-top:8px; background:#111;
   border:1px solid var(--border-hi); border-radius:6px;
   border-left:3px solid var(--blue); overflow:hidden;
 }
@@ -622,6 +646,14 @@ select#airlineSelect:focus { border-color:var(--blue); }
         <span class="search-icon">&#9992;</span>
         <input id="route-search-input" type="text" placeholder="Airport code or city…" oninput="onRouteSearch(this.value)" autocomplete="off"/>
         <div id="route-search-results"></div>
+      </div>
+      <!-- Selected route chip — shown when a route is active -->
+      <div id="route-selected-chip">
+        <div style="flex:1;min-width:0">
+          <div id="route-chip-label">ORD ↔ —</div>
+          <div id="route-chip-name"></div>
+        </div>
+        <button id="route-chip-clear" onclick="clearRouteSelection()" title="Deselect route">&#215;</button>
       </div>
       <div id="route-card">
         <div id="route-card-hdr">
@@ -1167,7 +1199,8 @@ async function init() {
     map.addSource('arcs',     { type:'geojson', data:fc([]) });
     map.addSource('airports', { type:'geojson', data:fc([]) });
     map.addSource('ord',      { type:'geojson', data:fc([{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{ code:'ORD' } }]) });
-    map.addSource('heatmap-pts', { type:'geojson', data:fc([]) });
+    map.addSource('heatmap-pts',       { type:'geojson', data:fc([]) });
+    map.addSource('heatmap-state-pts', { type:'geojson', data:fc([]) });
 
     // ── US country border ─────────────────────────────────────────────────────
     map.addSource('us-boundary', { type:'vector', url:'mapbox://mapbox.country-boundaries-v1' });
@@ -1192,12 +1225,37 @@ async function init() {
         0.75,'rgba(255,238,88,0.9)',
         1.0, 'rgba(228,0,43,1)']
     };
+    // Airport-level heatmap (fine-grain, used at closer zoom)
     map.addLayer({ id:'heatmap-all',  type:'heatmap', source:'heatmap-pts', layout:{visibility:'none'}, paint:hmPaint });
     map.addLayer({ id:'heatmap-dom',  type:'heatmap', source:'heatmap-pts', filter:['==',['get','intl'],false], layout:{visibility:'none'}, paint:hmPaint });
     map.addLayer({ id:'heatmap-intl', type:'heatmap', source:'heatmap-pts', filter:['==',['get','intl'],true],  layout:{visibility:'none'}, paint:{...hmPaint,'heatmap-color':['interpolate',['linear'],['heatmap-density'],
         0,'rgba(0,0,0,0)',
         0.15,'rgba(106,27,154,0.6)',
         0.35,'rgba(156,39,176,0.75)',
+        0.55,'rgba(249,168,37,0.85)',
+        0.75,'rgba(255,238,88,0.9)',
+        1.0, 'rgba(228,0,43,1)']}});
+
+    // State-level heatmap (broad blobs at state centroids — always visible over airport points)
+    const hmStatePaint = {
+      'heatmap-weight':  ['interpolate',['linear'],['get','total'],0,0,50,0.5,200,0.8,500,1],
+      'heatmap-intensity':['interpolate',['linear'],['zoom'],1,2,4,3.5,7,5],
+      'heatmap-radius':  ['interpolate',['linear'],['zoom'],1,55,3,80,5,110,8,150],
+      'heatmap-opacity': 0.75,
+      'heatmap-color':   ['interpolate',['linear'],['heatmap-density'],
+        0,'rgba(0,0,0,0)',
+        0.1,'rgba(13,71,161,0.5)',
+        0.3,'rgba(30,136,229,0.7)',
+        0.55,'rgba(65,182,230,0.85)',
+        0.75,'rgba(255,238,88,0.9)',
+        1.0, 'rgba(228,0,43,1)']
+    };
+    map.addLayer({ id:'heatmap-state-all',  type:'heatmap', source:'heatmap-state-pts', layout:{visibility:'none'}, paint:hmStatePaint });
+    map.addLayer({ id:'heatmap-state-dom',  type:'heatmap', source:'heatmap-state-pts', filter:['==',['get','intl'],false], layout:{visibility:'none'}, paint:hmStatePaint });
+    map.addLayer({ id:'heatmap-state-intl', type:'heatmap', source:'heatmap-state-pts', filter:['==',['get','intl'],true],  layout:{visibility:'none'}, paint:{...hmStatePaint,'heatmap-color':['interpolate',['linear'],['heatmap-density'],
+        0,'rgba(0,0,0,0)',
+        0.1,'rgba(106,27,154,0.5)',
+        0.3,'rgba(156,39,176,0.7)',
         0.55,'rgba(249,168,37,0.85)',
         0.75,'rgba(255,238,88,0.9)',
         1.0, 'rgba(228,0,43,1)']}});
@@ -1591,7 +1649,14 @@ function onRouteSearch(q) {
 function selectRoute(code) {
   selectedRoute = code;
   document.getElementById('route-search-results').style.display = 'none';
-  document.getElementById('route-search-input').value = code;
+  // Clear input and show chip instead
+  document.getElementById('route-search-input').value = '';
+  document.getElementById('route-search-input').placeholder = 'Search another route…';
+
+  // Show the selected chip immediately
+  document.getElementById('route-chip-label').textContent = `ORD ↔ ${code}`;
+  document.getElementById('route-chip-name').textContent = '';
+  document.getElementById('route-selected-chip').style.display = 'flex';
 
   // Show card immediately with placeholder if no data loaded yet
   document.getElementById('rc-title').textContent = `ORD ↔ ${code}`;
@@ -1620,6 +1685,8 @@ function selectRoute(code) {
     applyRouteHighlight();
     return;
   }
+  // Update chip with airport name
+  if (apt.name) document.getElementById('route-chip-name').textContent = apt.name;
 
   const sampleDays = new Set([...arrFlights,...depFlights].map(f=>f.date).filter(Boolean)).size || 1;
   const arrCount = Math.round(arrFlights.reduce((s,f)=>s+(f.count||1),0) / sampleDays);
@@ -1652,7 +1719,9 @@ function selectRoute(code) {
 function clearRouteSelection() {
   selectedRoute = null;
   document.getElementById('route-search-input').value = '';
+  document.getElementById('route-search-input').placeholder = 'Airport code or city…';
   document.getElementById('route-search-results').style.display = 'none';
+  document.getElementById('route-selected-chip').style.display = 'none';
   document.getElementById('route-card').style.display = 'none';
   // Restore normal arc opacity
   if (map.getSource('arcs')) {
@@ -1758,6 +1827,23 @@ function render() {
     else { map.getSource('arcs').setData(fc(arcFeatures)); }
     map.getSource('airports').setData(fc(aptFeatures));
     map.getSource('heatmap-pts').setData(fc(aptFeatures));
+    // Build state-level heatmap: aggregate flight counts at state centroid coordinates
+    const stateHmMap = {};
+    [...fArr, ...fDep].forEach(f => {
+      const st = AIRPORT_STATE[f.code];
+      if (!st || !STATE_CENTERS[st]) return;
+      if (!stateHmMap[st]) stateHmMap[st] = { total:0, dom:0, intl:0 };
+      stateHmMap[st].total += (f.count || 1);
+      if (f.intl) stateHmMap[st].intl += (f.count || 1);
+      else        stateHmMap[st].dom  += (f.count || 1);
+    });
+    const stateHmFeatures = [];
+    Object.entries(stateHmMap).forEach(([st, d]) => {
+      const c = STATE_CENTERS[st];
+      if (d.dom  > 0) stateHmFeatures.push({ type:'Feature', geometry:{ type:'Point', coordinates:c }, properties:{ total:d.dom,  intl:false } });
+      if (d.intl > 0) stateHmFeatures.push({ type:'Feature', geometry:{ type:'Point', coordinates:c }, properties:{ total:d.intl, intl:true  } });
+    });
+    map.getSource('heatmap-state-pts').setData(fc(stateHmFeatures));
     applyHeatmap();
     applyColorMode();
   } else if (viewMode === 'state') {
@@ -2284,16 +2370,21 @@ function setHeatmap(mode) {
 
 function applyHeatmap() {
   if (!map.isStyleLoaded()) return;
-  const layers = { all:'heatmap-all', domestic:'heatmap-dom', international:'heatmap-intl' };
-  Object.values(layers).forEach(l => {
+  const aptLayers   = { all:'heatmap-all',       domestic:'heatmap-dom',       international:'heatmap-intl'       };
+  const stateLayers = { all:'heatmap-state-all', domestic:'heatmap-state-dom', international:'heatmap-state-intl' };
+  // Hide all heatmap layers first
+  [...Object.values(aptLayers), ...Object.values(stateLayers)].forEach(l => {
     if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
   });
-  if (heatmapMode !== 'off' && layers[heatmapMode]) {
-    if (map.getLayer(layers[heatmapMode]))
-      map.setLayoutProperty(layers[heatmapMode], 'visibility', 'visible');
+  // Show matching layers when mode is active (both airport and state level)
+  if (heatmapMode !== 'off') {
+    const aptId   = aptLayers[heatmapMode];
+    const stateId = stateLayers[heatmapMode];
+    if (aptId   && map.getLayer(aptId))   map.setLayoutProperty(aptId,   'visibility', 'visible');
+    if (stateId && map.getLayer(stateId)) map.setLayoutProperty(stateId, 'visibility', 'visible');
   }
   // Dim arcs slightly when heatmap is on so heatmap reads clearly
-  const arcOp = heatmapMode === 'off' ? 0.55 : 0.25;
+  const arcOp = heatmapMode === 'off' ? 0.55 : 0.20;
   if (!selectedRoute && map.getLayer('arcs-arr')) {
     map.setPaintProperty('arcs-arr', 'line-opacity', arcOp);
     map.setPaintProperty('arcs-dep', 'line-opacity', arcOp);
