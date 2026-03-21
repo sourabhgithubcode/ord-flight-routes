@@ -15,6 +15,10 @@ const MAPBOX_TOKEN    = process.env.MAPBOX_TOKEN;
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
 
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Static airport coordinates (IATA → [lat, lon])
 const AIRPORT_COORDS = {
   ABE:[40.6521,-75.4408],ABQ:[35.0402,-106.6090],ACY:[39.4576,-74.5772],ADD:[8.9779,38.7993],
