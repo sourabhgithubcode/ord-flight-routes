@@ -694,6 +694,13 @@ select#airlineSelect:focus { border-color:var(--blue); }
           <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
         </div>
         <div id="row-color-label" style="display:none"></div>
+        <div class="ctrl-sub-label" style="margin-top:14px">Route Density Heatmap</div>
+        <div class="ctrl-row">
+          <button class="tog on-type" id="btnHmOff"  onclick="setHeatmap('off')"           style="flex:1;font-size:11px">Off</button>
+          <button class="tog"         id="btnHmAll"  onclick="setHeatmap('all')"            style="flex:1;font-size:11px">All</button>
+          <button class="tog"         id="btnHmDom"  onclick="setHeatmap('domestic')"       style="flex:1;font-size:11px">Dom</button>
+          <button class="tog"         id="btnHmIntl" onclick="setHeatmap('international')"  style="flex:1;font-size:11px">Intl</button>
+        </div>
       </div>
 
     </div><!-- /filters-accordion -->
@@ -985,6 +992,7 @@ let compareMode = false;
 let playIntro = false;
 let introAnimFrame = null;
 let selectedRoute = null; // airport code currently selected in route search
+let heatmapMode = 'off'; // 'off' | 'all' | 'domestic' | 'international'
 
 // ── Fare Intelligence data (BTS DB1B patterns, ORD domestic routes) ───────────
 // Format: [avgFare, comp, airlines[], morningDiscountPct]
@@ -1155,6 +1163,7 @@ async function init() {
     map.addSource('arcs',     { type:'geojson', data:fc([]) });
     map.addSource('airports', { type:'geojson', data:fc([]) });
     map.addSource('ord',      { type:'geojson', data:fc([{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{ code:'ORD' } }]) });
+    map.addSource('heatmap-pts', { type:'geojson', data:fc([]) });
 
     // ── US country border ─────────────────────────────────────────────────────
     map.addSource('us-boundary', { type:'vector', url:'mapbox://mapbox.country-boundaries-v1' });
@@ -1164,6 +1173,30 @@ async function init() {
     map.addLayer({ id:'us-border-line', type:'line', source:'us-boundary', 'source-layer':'country_boundaries',
       filter:['==',['get','iso_3166_1'],'US'],
       paint:{ 'line-color':'#41B6E6', 'line-width':2, 'line-opacity':0.55 } });
+
+    // ── Heatmap layers ───────────────────────────────────────────────────────
+    const hmPaint = {
+      'heatmap-weight':  ['interpolate',['linear'],['get','total'],0,0,10,0.3,100,0.7,500,1],
+      'heatmap-intensity':['interpolate',['linear'],['zoom'],2,1,8,2.5],
+      'heatmap-radius':  ['interpolate',['linear'],['zoom'],2,18,5,30,8,50],
+      'heatmap-opacity': 0.72,
+      'heatmap-color':   ['interpolate',['linear'],['heatmap-density'],
+        0,'rgba(0,0,0,0)',
+        0.15,'rgba(13,71,161,0.6)',
+        0.35,'rgba(30,136,229,0.75)',
+        0.55,'rgba(65,182,230,0.85)',
+        0.75,'rgba(255,238,88,0.9)',
+        1.0, 'rgba(228,0,43,1)']
+    };
+    map.addLayer({ id:'heatmap-all',  type:'heatmap', source:'heatmap-pts', layout:{visibility:'none'}, paint:hmPaint });
+    map.addLayer({ id:'heatmap-dom',  type:'heatmap', source:'heatmap-pts', filter:['==',['get','intl'],false], layout:{visibility:'none'}, paint:hmPaint });
+    map.addLayer({ id:'heatmap-intl', type:'heatmap', source:'heatmap-pts', filter:['==',['get','intl'],true],  layout:{visibility:'none'}, paint:{...hmPaint,'heatmap-color':['interpolate',['linear'],['heatmap-density'],
+        0,'rgba(0,0,0,0)',
+        0.15,'rgba(106,27,154,0.6)',
+        0.35,'rgba(156,39,176,0.75)',
+        0.55,'rgba(249,168,37,0.85)',
+        0.75,'rgba(255,238,88,0.9)',
+        1.0, 'rgba(228,0,43,1)']}});
 
     map.addLayer({ id:'arcs-arr', type:'line', source:'arcs', filter:['==',['get','dir'],'arr'],
       paint:{ 'line-color':'#41B6E6', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.55 } });
@@ -1695,6 +1728,8 @@ function render() {
     if (playIntro) { playIntro = false; animateArcIntro(arcFeatures); }
     else { map.getSource('arcs').setData(fc(arcFeatures)); }
     map.getSource('airports').setData(fc(aptFeatures));
+    map.getSource('heatmap-pts').setData(fc(aptFeatures));
+    applyHeatmap();
     applyColorMode();
   } else if (viewMode === 'state') {
     renderState(fArr, fDep);
@@ -2206,6 +2241,36 @@ function setColorMode(m) {
   document.getElementById('btnColAl').classList.toggle('on-al',m==='airline');
   if(curData)render();
 }
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+function setHeatmap(mode) {
+  heatmapMode = mode;
+  ['btnHmOff','btnHmAll','btnHmDom','btnHmIntl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('on-type');
+  });
+  const activeId = {off:'btnHmOff',all:'btnHmAll',domestic:'btnHmDom',international:'btnHmIntl'}[mode];
+  if (activeId) document.getElementById(activeId)?.classList.add('on-type');
+  applyHeatmap();
+}
+
+function applyHeatmap() {
+  if (!map.isStyleLoaded()) return;
+  const layers = { all:'heatmap-all', domestic:'heatmap-dom', international:'heatmap-intl' };
+  Object.values(layers).forEach(l => {
+    if (map.getLayer(l)) map.setLayoutProperty(l, 'visibility', 'none');
+  });
+  if (heatmapMode !== 'off' && layers[heatmapMode]) {
+    if (map.getLayer(layers[heatmapMode]))
+      map.setLayoutProperty(layers[heatmapMode], 'visibility', 'visible');
+  }
+  // Dim arcs slightly when heatmap is on so heatmap reads clearly
+  const arcOp = heatmapMode === 'off' ? 0.55 : 0.25;
+  if (!selectedRoute && map.getLayer('arcs-arr')) {
+    map.setPaintProperty('arcs-arr', 'line-opacity', arcOp);
+    map.setPaintProperty('arcs-dep', 'line-opacity', arcOp);
+  }
+}
+
 function toggleFilters() {
   const acc = document.getElementById('filters-accordion');
   const btn = document.getElementById('filters-toggle');
