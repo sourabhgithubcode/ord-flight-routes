@@ -1811,69 +1811,83 @@ const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','
 // ── Route Search ──────────────────────────────────────────────────────────────
 function onRouteSearch(q) {
   const box = document.getElementById('route-search-results');
-  if (q.trim().length < 1) { box.style.display='none'; return; }
-  const term = q.trim().toUpperCase();
+  const raw = q.trim();
+  if (raw.length < 2) { box.style.display='none'; return; }
+  const term = raw.toUpperCase();
 
-  // Build flight-count map from loaded data (optional — enhances results with live counts)
+  // Build live flight-count map if a month is loaded
   const flightCounts = {};
   if (curData) {
     curData.arrivals.forEach(f  => { if(!flightCounts[f.code]) flightCounts[f.code]={arr:0,dep:0}; flightCounts[f.code].arr+=(f.count||1); });
     curData.departures.forEach(f=> { if(!flightCounts[f.code]) flightCounts[f.code]={arr:0,dep:0}; flightCounts[f.code].dep+=(f.count||1); });
   }
 
-  // Score each airport in the static DB against the query
   const scored = [];
+
   Object.entries(AIRPORT_DB).forEach(([code, info]) => {
     const cityU  = info.city.toUpperCase();
     const nameU  = info.name.toUpperCase();
+    // Derive state name from AIRPORT_STATE + STATE_NAMES
+    const stateName = (STATE_NAMES[AIRPORT_STATE[code]] || '').toUpperCase();
+
     let score = 0;
-    if (code === term)                     score = 100;          // exact code match
-    else if (code.startsWith(term))        score = 80;           // code prefix
-    else if (cityU === term)               score = 90;           // exact city
-    else if (cityU.startsWith(term))       score = 70;           // city prefix
-    else if (cityU.includes(term))         score = 50;           // city contains
-    else if (nameU.includes(term))         score = 30;           // airport name contains
+    // City name matching — primary
+    if (cityU === term)              score = 100;
+    else if (cityU.startsWith(term)) score = 80;
+    else if (cityU.includes(term))   score = 60;
+    // State name matching
+    else if (stateName && stateName === term)              score = 70;
+    else if (stateName && stateName.startsWith(term))      score = 55;
+    else if (stateName && stateName.includes(term))        score = 40;
+    // Airport full name matching (secondary, lower priority)
+    else if (nameU.includes(term))   score = 20;
+    // Exact IATA code only (so "LAX" still finds LAX, but "LA" won't)
+    else if (code === term)          score = 90;
+
     if (score === 0) return;
     const fc = flightCounts[code] || { arr:0, dep:0 };
-    scored.push({ code, city:info.city, name:info.name, intl:info.intl, arr:fc.arr, dep:fc.dep, score, total:fc.arr+fc.dep });
+    scored.push({ code, city:info.city, name:info.name, intl:info.intl,
+                  state: STATE_NAMES[AIRPORT_STATE[code]] || '',
+                  arr:fc.arr, dep:fc.dep, score, total:fc.arr+fc.dep });
   });
 
-  // Also search live data for codes not in static DB (e.g. regional airports)
+  // Also search live data airports not in static DB
   if (curData) {
     const liveApt = {};
     [...curData.arrivals,...curData.departures].forEach(f => {
-      if (AIRPORT_DB[f.code]) return; // already covered
-      if (!liveApt[f.code]) liveApt[f.code] = { code:f.code, city:'', name:f.name||f.code, intl:f.intl, arr:0, dep:0 };
+      if (AIRPORT_DB[f.code]) return;
+      if (!liveApt[f.code]) liveApt[f.code] = { code:f.code, name:f.name||f.code, intl:f.intl, arr:0, dep:0 };
     });
     curData.arrivals.forEach(f  => { if(liveApt[f.code]) liveApt[f.code].arr+=(f.count||1); });
     curData.departures.forEach(f=> { if(liveApt[f.code]) liveApt[f.code].dep+=(f.count||1); });
     Object.values(liveApt).forEach(a => {
-      const codeU = a.code.toUpperCase();
-      const nameU = a.name.toUpperCase();
-      let score = 0;
-      if (codeU === term)           score = 80;
-      else if (codeU.startsWith(term)) score = 60;
-      else if (nameU.includes(term))   score = 25;
-      if (score > 0) scored.push({ ...a, score, total:a.arr+a.dep });
+      const nameU = (a.name||'').toUpperCase();
+      // live data: only match by airport name (no code-prefix matching)
+      if (nameU.includes(term) || a.code === term)
+        scored.push({ ...a, city:'', state:'', score:15, total:a.arr+a.dep });
     });
   }
 
   if (!scored.length) {
-    box.innerHTML = `<div style="padding:12px;color:#555;font-size:11px;text-align:center">No airports found for "${q}"</div>`;
+    box.innerHTML = `<div style="padding:12px;color:#555;font-size:11px;text-align:center">No results for "${raw}" — try a city or state name</div>`;
     box.style.display = 'block';
     return;
   }
 
-  // Sort: score first, then by flight volume
   scored.sort((a,b) => b.score - a.score || b.total - a.total);
 
-  // Group by city when multiple airports in same city
   const rows = scored.slice(0, 20).map(a => {
     const color = a.intl ? '#F5A623' : '#41B6E6';
-    const countHtml = (a.arr||a.dep) ? `<span class="rs-counts"><span class="rs-arr">↓${a.arr}</span><span class="rs-dep">↑${a.dep}</span></span>` : `<span style="font-size:9px;color:#444">${curData?'no data':'load month'}</span>`;
+    const subtitle = a.state ? `${a.name} · ${a.state}` : a.name;
+    const countHtml = (a.arr||a.dep)
+      ? `<span class="rs-counts"><span class="rs-arr">↓${a.arr}</span><span class="rs-dep">↑${a.dep}</span></span>`
+      : `<span style="font-size:9px;color:#444">${curData ? 'no data' : 'pick month'}</span>`;
     return `<div class="rs-item" onclick="selectRoute('${a.code}')">
       <span class="rs-code" style="color:${color}">${a.code}</span>
-      <span class="rs-name"><span style="color:#ccc">${a.city||a.name}</span><span style="display:block;font-size:10px;color:#555">${a.city?a.name:''}</span></span>
+      <span class="rs-name">
+        <span style="color:#ddd">${a.city || a.name}</span>
+        <span style="display:block;font-size:10px;color:#555">${subtitle}</span>
+      </span>
       ${countHtml}
     </div>`;
   }).join('');
