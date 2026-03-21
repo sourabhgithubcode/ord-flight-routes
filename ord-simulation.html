@@ -598,7 +598,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
 </head>
 <body>
 
-<div id="loading"><div class="spinner"></div><p>LOADING FLIGHT DATA...</p></div>
+<div id="loading" class="hidden"><div class="spinner"></div><p>LOADING FLIGHT DATA...</p></div>
 <div id="err-banner"></div>
 
 <!-- Header: title + badge + insights toggle -->
@@ -709,7 +709,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
     </div>
 
     <!-- 6. MORE FILTERS accordion (open by default) -->
-    <button id="filters-toggle open" onclick="toggleFilters()">
+    <button id="filters-toggle" class="open" onclick="toggleFilters()">
       <span>&#9881; More Filters</span>
       <span id="filters-arrow" style="transform:rotate(180deg)">&#9660;</span>
     </button>
