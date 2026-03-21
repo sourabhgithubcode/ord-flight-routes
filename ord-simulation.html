@@ -708,12 +708,12 @@ select#airlineSelect:focus { border-color:var(--blue); }
       </div>
     </div>
 
-    <!-- 6. MORE FILTERS accordion -->
-    <button id="filters-toggle" onclick="toggleFilters()">
+    <!-- 6. MORE FILTERS accordion (open by default) -->
+    <button id="filters-toggle open" onclick="toggleFilters()">
       <span>&#9881; More Filters</span>
-      <span id="filters-arrow">&#9660;</span>
+      <span id="filters-arrow" style="transform:rotate(180deg)">&#9660;</span>
     </button>
-    <div id="filters-accordion">
+    <div id="filters-accordion" class="open">
 
       <div class="ctrl-section secondary">
         <div class="ctrl-section-title">Airline</div>
@@ -1372,6 +1372,7 @@ function onMonthClick(m) {
 }
 
 buildMonthBtns();
+populateAirlineDropdown(); // pre-fill with known airlines before data loads
 
 // ── Mapbox init ──────────────────────────────────────────────────────────────
 async function init() {
@@ -2542,17 +2543,29 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 // ── Populate airline dropdown ─────────────────────────────────────────────────
+const DEFAULT_AIRLINES = ['United','American','Delta Air Lines','Southwest','Air Canada',
+  'Envoy Air','SkyWest Airlines','Spirit','Frontier','Alaska','British Airways',
+  'Lufthansa','Air France','KLM','Emirates','Japan Airlines','ANA','Korean Air'];
+
 function populateAirlineDropdown() {
-  if (!curData) return;
-  const counts = {};
-  [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+(f.count||1); });
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  const sel = document.getElementById('airlineSelect');
+  const sel  = document.getElementById('airlineSelect');
   const prev = sel.value;
   sel.innerHTML = '<option value="all">All Airlines</option>';
-  sorted.forEach(([name,cnt])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} (${cnt})`; sel.appendChild(o); });
-  sel.value = sorted.find(([n])=>n===prev) ? prev : 'all';
-  buildLegend(sorted.slice(0,7));
+
+  let sorted;
+  if (curData) {
+    const counts = {};
+    [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+(f.count||1); });
+    sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    sorted.forEach(([name,cnt])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} (${cnt} flights)`; sel.appendChild(o); });
+  } else {
+    // No data loaded yet — show known ORD airlines without counts
+    DEFAULT_AIRLINES.forEach(name=>{ const o=document.createElement('option'); o.value=name; o.textContent=name; sel.appendChild(o); });
+    sorted = DEFAULT_AIRLINES.map(n=>[n,0]);
+  }
+
+  sel.value = (sorted||[]).find(([n])=>n===prev) ? prev : 'all';
+  buildLegend((sorted||[]).slice(0,7));
 }
 
 function buildLegend(airlines) {
