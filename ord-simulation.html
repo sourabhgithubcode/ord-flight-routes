@@ -1045,6 +1045,15 @@ async function init() {
     map.addSource('airports', { type:'geojson', data:fc([]) });
     map.addSource('ord',      { type:'geojson', data:fc([{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{ code:'ORD' } }]) });
 
+    // ── US country border ─────────────────────────────────────────────────────
+    map.addSource('us-boundary', { type:'vector', url:'mapbox://mapbox.country-boundaries-v1' });
+    map.addLayer({ id:'us-border-glow', type:'line', source:'us-boundary', 'source-layer':'country_boundaries',
+      filter:['==',['get','iso_3166_1'],'US'],
+      paint:{ 'line-color':'#41B6E6', 'line-width':6, 'line-opacity':0.12, 'line-blur':3 } });
+    map.addLayer({ id:'us-border-line', type:'line', source:'us-boundary', 'source-layer':'country_boundaries',
+      filter:['==',['get','iso_3166_1'],'US'],
+      paint:{ 'line-color':'#41B6E6', 'line-width':2, 'line-opacity':0.55 } });
+
     map.addLayer({ id:'arcs-arr', type:'line', source:'arcs', filter:['==',['get','dir'],'arr'],
       paint:{ 'line-color':'#41B6E6', 'line-width':['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8], 'line-opacity':0.55 } });
     map.addLayer({ id:'arcs-dep', type:'line', source:'arcs', filter:['==',['get','dir'],'dep'],
@@ -1061,7 +1070,7 @@ async function init() {
 
     map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':26,'circle-color':'#41B6E6','circle-opacity':0.14,'circle-blur':1 } });
     map.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':12,'circle-color':'#41B6E6','circle-opacity':1,'circle-stroke-width':2.5,'circle-stroke-color':'#000000' } });
-    map.addLayer({ id:'ord-label', type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':12,'text-offset':[0,2.2],'text-anchor':'top' }, paint:{ 'text-color':'#41B6E6','text-halo-color':'#000000','text-halo-width':2 } });
+    map.addLayer({ id:'ord-label', type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':10,'text-offset':[0,0],'text-anchor':'center' }, paint:{ 'text-color':'#000000','text-halo-color':'#000000','text-halo-width':0 } });
 
     // ── State view sources & layers ──────────────────────────────────────────
     map.addSource('state-arcs-arr', { type:'geojson', data:fc([]) });
