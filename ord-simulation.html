@@ -1975,7 +1975,7 @@ function clearRouteSelection() {
   document.getElementById('route-selected-chip').style.display = 'none';
   document.getElementById('route-card').style.display = 'none';
   // Restore normal arc opacity
-  if (map.getSource('arcs')) {
+  if (map && map.getSource('arcs')) {
     map.setPaintProperty('arcs-arr', 'line-opacity', 0.55);
     map.setPaintProperty('arcs-dep', 'line-opacity', 0.55);
     map.setPaintProperty('arcs-arr', 'line-width', ['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8]);
@@ -1994,7 +1994,7 @@ document.addEventListener('keydown', e => {
 });
 
 function applyRouteHighlight() {
-  if (!map.getLayer('arcs-arr')) return;
+  if (!map || !map.getLayer('arcs-arr')) return;
   if (!selectedRoute) {
     map.setPaintProperty('arcs-arr', 'line-opacity', 0.55);
     map.setPaintProperty('arcs-dep', 'line-opacity', 0.55);
@@ -2029,7 +2029,7 @@ function animateArcIntro(arcFeatures) {
 }
 
 function render() {
-  if (!curData || !map.isStyleLoaded()) return;
+  if (!map || !curData || !map.isStyleLoaded()) return;
   const fArr = showArr ? filtered(curData.arrivals)  : [];
   const fDep = showDep ? filtered(curData.departures): [];
 
@@ -2225,6 +2225,7 @@ function setTimeFilter(t) {
 }
 
 function applyColorMode() {
+  if (!map || !map.isStyleLoaded()) return;
   if (fareMode) {
     map.setPaintProperty('arcs-arr', 'line-color', ['get','fareColor']);
     map.setPaintProperty('arcs-dep', 'line-color', ['get','fareColor']);
@@ -2630,7 +2631,7 @@ function setHeatmap(mode) {
 }
 
 function applyHeatmap() {
-  if (!map.isStyleLoaded()) return;
+  if (!map || !map.isStyleLoaded()) return;
   const aptLayers   = { all:'heatmap-all',       domestic:'heatmap-dom',       international:'heatmap-intl'       };
   const stateLayers = { all:'heatmap-state-all', domestic:'heatmap-state-dom', international:'heatmap-state-intl' };
   // Hide all heatmap layers first
