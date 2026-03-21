@@ -1,19 +1,32 @@
 'use strict';
 require('dotenv').config();
 
-const express = require('express');
-const axios   = require('axios');
-const cors    = require('cors');
-const path    = require('path');
-const fs      = require('fs');
+const express     = require('express');
+const axios       = require('axios');
+const cors        = require('cors');
+const path        = require('path');
+const fs          = require('fs');
+const compression = require('compression');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
 const AERODATABOX_KEY = process.env.AERODATABOX_KEY;
 const MAPBOX_TOKEN    = process.env.MAPBOX_TOKEN;
 
+// Gzip all responses
+app.use(compression());
 app.use(cors());
-app.use(express.static(path.join(__dirname)));
+
+// Static files with cache headers (1 week for assets, no-cache for HTML)
+app.use(express.static(path.join(__dirname), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    }
+  }
+}));
 
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
