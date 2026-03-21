@@ -515,9 +515,10 @@ select#airlineSelect:focus { border-color:var(--blue); }
   .sv { font-size:18px; }
   #insights { width:270px; }
   #compare-panel { width:90vw; }
+  .month-btn { font-size:10px; padding:6px 2px; }
 }
 
-/* ── Small tablet / large phone (≤768px) ── */
+/* ── Tablet / large phone (≤768px) ── */
 @media (max-width:768px) {
   /* Header */
   #sidebar-toggle { display:block; }
@@ -525,74 +526,115 @@ select#airlineSelect:focus { border-color:var(--blue); }
   .hdr-sub { display:none; }
   #src-badge { display:none; }
 
-  /* Sidebar slides in/out as overlay */
+  /* Map takes full space — sidebar is overlay so main stays row */
+  #main { flex-direction:row; }
+  #map-wrap { flex:1; }
+
+  /* Touch-friendly map — prevent scroll conflicts */
+  #map { touch-action:none; }
+
+  /* Sidebar: slide-in overlay */
   #sidebar {
     position:fixed; top:0; left:0; bottom:0;
-    width:260px; z-index:100;
+    width:270px; z-index:100;
     transform:translateX(-100%);
     transition:transform .25s ease;
-    box-shadow:4px 0 24px rgba(0,0,0,0.8);
+    box-shadow:4px 0 24px rgba(0,0,0,0.85);
   }
   #sidebar.open { transform:translateX(0); }
-
-  /* Sidebar overlay backdrop */
   #sidebar-backdrop {
     display:none; position:fixed; inset:0;
     background:rgba(0,0,0,0.6); z-index:99;
   }
   #sidebar-backdrop.show { display:block; }
 
-  /* Map takes full width */
-  #main { flex-direction:column; }
-  #map-wrap { flex:1; }
+  /* Month buttons — tighter */
+  #monthBtns { grid-template-columns:repeat(3,1fr); gap:3px; }
+  .month-btn { font-size:9.5px; padding:5px 1px; }
 
   /* Stats bar — scrollable row */
   #statsbar {
-    gap:16px; padding:8px 14px;
+    gap:14px; padding:8px 12px;
     justify-content:flex-start;
     overflow-x:auto; flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
   }
-  #statsbar::-webkit-scrollbar { height:3px; }
+  #statsbar::-webkit-scrollbar { height:2px; }
   #statsbar::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:2px; }
-  .sv { font-size:16px; }
+  .sv { font-size:15px; }
   .sl { font-size:8px; }
 
   /* Footer legend — scrollable */
   #footer-legend {
-    gap:12px; padding:6px 14px;
+    gap:10px; padding:5px 12px;
     overflow-x:auto; flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
     font-size:10px;
   }
   #footer-legend #al-legend { margin-left:0; }
 
-  /* Insights panel — full width overlay */
+  /* Insights panel — bottom sheet */
   #insights {
+    position:fixed;
     left:0; right:0; top:auto; bottom:0;
-    width:100%; height:55vh;
-    border-radius:12px 12px 0 0;
+    width:100%; max-height:50vh;
+    border-radius:14px 14px 0 0;
     transform:translateY(100%);
+    transition:transform .3s ease;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
   #insights.hidden { transform:translateY(100%); opacity:1; pointer-events:none; }
   #insights:not(.hidden) { transform:translateY(0); }
+  #ins-header { position:sticky; top:0; z-index:2; background:#0d0d0d; }
+  /* Drag handle above bottom sheet */
+  #ins-header::before {
+    content:''; display:block; margin:0 auto 8px;
+    width:36px; height:4px; background:var(--border-hi);
+    border-radius:2px;
+  }
 
-  /* Compare panel — full width */
+  /* Compare panel — full width bottom */
   #compare-panel {
-    width:calc(100vw - 20px); left:10px;
-    transform:none; bottom:10px;
+    width:calc(100vw - 16px); left:8px; right:8px;
+    bottom:8px; transform:none;
+    max-height:60vh; overflow-y:auto;
   }
 
   /* Fare explorer — full screen */
-  #fare-explorer { width:100%; }
+  #fare-explorer {
+    width:100%; left:0; right:0;
+    border-left:none; border-top:1px solid #1D9E7522;
+  }
+
+  /* Route card — no fixed width issues */
+  #route-card { margin-top:6px; }
+
+  /* Route selected chip */
+  #route-selected-chip { margin-top:6px; }
 }
 
 /* ── Phone (≤480px) ── */
 @media (max-width:480px) {
   .hdr-title { font-size:11px; letter-spacing:1px; }
-  #statsbar { gap:12px; }
-  .sv { font-size:14px; }
+  .hdr-right { gap:6px; }
+  #btnInsights { font-size:10px; padding:5px 8px; }
+
+  #statsbar { gap:10px; padding:7px 10px; }
+  .sv { font-size:13px; }
+  .sl { font-size:7px; }
+
+  .month-btn { font-size:8.5px; padding:4px 1px; }
+
+  #insights { max-height:55vh; }
+
   .cmp-airline-name { font-size:13px; }
   .cmp-stat { font-size:10px; }
   .primary-title { font-size:9px; }
+
+  /* Ctrl section titles smaller */
+  .ctrl-section-title { font-size:9px; }
+  .tog { font-size:10px; padding:6px 8px; }
 }
 </style>
 </head>
@@ -607,7 +649,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
     <button id="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
     <div>
       <div class="hdr-title">&#9992;&nbsp; CHICAGO O'HARE &nbsp;|&nbsp; ORD FLIGHT ROUTES</div>
-      <div class="hdr-sub"><span style="color:#4fc3f7;font-weight:700">UA</span> vs <span style="color:#ef5350;font-weight:700">AA</span> · FARE &amp; ROUTE INTELLIGENCE · ORD 2025 · APR–DEC</div>
+      <div class="hdr-sub"><span style="color:#4fc3f7;font-weight:700">UA</span> vs <span style="color:#ef5350;font-weight:700">AA</span> · FARE &amp; ROUTE INTELLIGENCE · ORD · OCT '25–MAR '26</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -625,7 +667,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
 
     <!-- 1. PERIOD — what time window? -->
     <div class="ctrl-section">
-      <div class="ctrl-section-title">&#128197; Period · 2025</div>
+      <div class="ctrl-section-title">&#128197; Period · Oct '25–Mar '26</div>
       <div class="ctrl-sub-label" id="rangeLabel">Select a month</div>
       <div id="monthBtns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;"></div>
       <div style="font-size:10px;color:#444;margin-top:6px">Tap · Tap second for range · Double-tap single</div>
@@ -1208,8 +1250,10 @@ function regionOf(code) {
 let map, popup;
 let showArr = true, showDep = true;
 let routeType = 'all', colorMode = 'direction', curAirline = 'all';
-let curMonth = 10, curMonthEnd = 10;
-const curYear = 2025;
+let curMonth = 9, curMonthEnd = 9;   // Oct 2025 (0-based index) — instant load from disk cache
+const curYear = 2025;                 // used only for BTS cross-validation
+// Map 0-based month index → calendar year: 0–2 = 2026 (Jan–Mar), 9–11 = 2025 (Oct–Dec)
+function yearForMonth(mIdx) { return mIdx <= 2 ? 2026 : 2025; }
 let cache = {}, curData = null;
 let insightsOpen = true;
 let preloading = false;
@@ -1327,8 +1371,9 @@ function contestedBenchmark(codes) {
   return Math.round(fares.reduce((a,b)=>a+b,0)/fares.length);
 }
 
-// Apr–Dec 2025 only (Jan–Mar exceed AeroDataBox 365-day window)
-const AVAIL = [false,false,false,true,true,true,true,true,true,true,true,true];
+// Available: Oct–Dec 2025 (cached) + Jan–Mar 2026 (within 180-day AeroDataBox window)
+// Apr–Sep 2025 disabled — older than 180 days, AeroDataBox rejects those dates
+const AVAIL = [true,true,true,false,false,false,false,false,false,true,true,true];
 
 // ── Month buttons ────────────────────────────────────────────────────────────
 function buildMonthBtns() {
@@ -1341,9 +1386,9 @@ function buildMonthBtns() {
     const b = document.createElement('button');
     b.id = `mo-${i}`;
     b.className = 'month-btn' + (isEndpoint && avail ? ' active' : inRange ? ' in-range' : '');
-    b.textContent = name;
+    b.textContent = name + (i <= 2 ? " '26" : i >= 9 ? " '25" : '');
     b.disabled = !avail;
-    b.title = avail ? '' : 'Unavailable — exceeds 365-day API window';
+    b.title = avail ? '' : 'Unavailable — beyond 180-day AeroDataBox lookback (Apr–Sep 2025)';
     b.onclick = () => { if (avail) onMonthClick(i); };
     b.ondblclick = (e) => { e.stopPropagation(); if (avail) loadRange(i, i); };
     mb.appendChild(b);
@@ -1352,10 +1397,14 @@ function buildMonthBtns() {
 
 function updateRangeLabel() {
   const el = document.getElementById('rangeLabel');
+  const yr = yearForMonth(curMonth);
+  const yrSuffix = yr === 2026 ? "'26" : "'25";
   if (curMonth === curMonthEnd) {
-    el.textContent = MONTHS[curMonth] + ' 2025';
+    el.textContent = MONTHS[curMonth] + ' ' + yrSuffix;
   } else {
-    el.textContent = `${MONTHS[curMonth]} → ${MONTHS[curMonthEnd]} 2025  (${curMonthEnd - curMonth + 1} mo)`;
+    const yrE = yearForMonth(curMonthEnd);
+    const suffix = yr === yrE ? yrSuffix : `'${String(yr).slice(2)}–'${String(yrE).slice(2)}`;
+    el.textContent = `${MONTHS[curMonth]} → ${MONTHS[curMonthEnd]} ${suffix}  (${curMonthEnd - curMonth + 1} mo)`;
   }
 }
 
@@ -1364,6 +1413,8 @@ function onMonthClick(m) {
     // Single month selected: clicking same = no-op; different = set range
     if (m === curMonth) return;
     const lo = Math.min(m, curMonth), hi = Math.max(m, curMonth);
+    // Don't allow cross-year ranges (Oct–Dec 2025 ≠ Jan–Mar 2026)
+    if (yearForMonth(lo) !== yearForMonth(hi)) { loadRange(m, m); return; }
     loadRange(lo, hi);
   } else {
     // Range selected: any click resets to new single month
@@ -1371,6 +1422,30 @@ function onMonthClick(m) {
   }
 }
 
+const DEFAULT_AIRLINES = ['United','American','Delta Air Lines','Southwest','Air Canada',
+  'Envoy Air','SkyWest Airlines','Spirit','Frontier','Alaska','British Airways',
+  'Lufthansa','Air France','KLM','Emirates','Japan Airlines','ANA','Korean Air'];
+
+function populateAirlineDropdown() {
+  const sel  = document.getElementById('airlineSelect');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="all">All Airlines</option>';
+
+  let sorted;
+  if (curData) {
+    const counts = {};
+    [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+(f.count||1); });
+    sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+    sorted.forEach(([name,cnt])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} (${cnt} flights)`; sel.appendChild(o); });
+  } else {
+    // No data loaded yet — show known ORD airlines without counts
+    DEFAULT_AIRLINES.forEach(name=>{ const o=document.createElement('option'); o.value=name; o.textContent=name; sel.appendChild(o); });
+    sorted = DEFAULT_AIRLINES.map(n=>[n,0]);
+  }
+
+  sel.value = (sorted||[]).find(([n])=>n===prev) ? prev : 'all';
+  buildLegend((sorted||[]).slice(0,7));
+}
 buildMonthBtns();
 populateAirlineDropdown(); // pre-fill with known airlines before data loads
 
@@ -1379,9 +1454,22 @@ async function init() {
   const cfg = await fetch('/api/config').then(r => r.json());
   mapboxgl.accessToken = cfg.mapboxToken;
 
+  if (!mapboxgl.supported()) {
+    document.getElementById('map').innerHTML = '<div style="color:#fff;padding:40px;text-align:center;font-size:14px">⚠ WebGL not supported in this browser.<br>Try Chrome or Firefox.</div>';
+    return;
+  }
+
   map = new mapboxgl.Map({
     container: 'map', style: 'mapbox://styles/mapbox/dark-v11',
     center: [-87.91, 41.98], zoom: 3.2, projection: 'globe',
+    failIfMajorPerformanceCaveat: false,
+  });
+
+  map.on('error', (e) => {
+    console.error('Mapbox error:', e.error);
+    document.getElementById('map').insertAdjacentHTML('afterbegin',
+      `<div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#c0392b;color:#fff;padding:8px 16px;border-radius:6px;z-index:10;font-size:12px">Map error: ${e.error?.message||'unknown'}</div>`
+    );
   });
   popup = new mapboxgl.Popup({ closeButton:false, closeOnClick:false, offset:14 });
   map.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'bottom-left');
@@ -1502,7 +1590,7 @@ async function init() {
       paint:{ 'circle-radius':['interpolate',['linear'],['get','total'],1,6,50,11,200,18],
         'circle-color':'#a78bfa', 'circle-opacity':0.88,
         'circle-stroke-width':1.5, 'circle-stroke-color':'#020c1b' } });
-    map.addLayer({ id:'state-label', type:'symbol', source:'state-nodes', layout:{ visibility:'none',
+    map.addLayer({ id:'ord-state-label', type:'symbol', source:'state-nodes', layout:{ visibility:'none',
         'text-field':['get','state'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
         'text-size':10, 'text-offset':[0,1.8], 'text-anchor':'top' },
       paint:{ 'text-color':'#a78bfa', 'text-halo-color':'#020c1b', 'text-halo-width':1.5 } });
@@ -1678,14 +1766,14 @@ async function loadRange(start, end) {
     // Fetch any uncached months in parallel
     const months = [];
     for (let m = start; m <= end; m++) months.push(m);
-    await Promise.all(months.filter(m => !cache[cacheKey(2025, m)]).map(async m => {
-      const r = await fetch(`/api/flights/${m+1}`);
+    await Promise.all(months.filter(m => !cache[cacheKey(yearForMonth(m), m)]).map(async m => {
+      const r = await fetch(`/api/flights/${yearForMonth(m)}/${m+1}`);
       const j = await r.json();
       if (j.error === 'quota_exceeded') throw Object.assign(new Error(j.message), { quota: true });
-      if (!j.error) cache[cacheKey(2025, m)] = j;
+      if (!j.error) cache[cacheKey(yearForMonth(m), m)] = j;
     }));
     // Merge data across selected months
-    const parts = months.map(m => cache[cacheKey(2025, m)]).filter(Boolean);
+    const parts = months.map(m => cache[cacheKey(yearForMonth(m), m)]).filter(Boolean);
     if (!parts.length) throw new Error('No data loaded');
     curData = {
       arrivals:    parts.flatMap(d => d.arrivals   || []),
@@ -1703,7 +1791,7 @@ async function loadRange(start, end) {
     // BTS cross-validation only meaningful for single month
     if (start === end) {
       document.getElementById('sec-bts').style.display = '';
-      loadBTS(2025, start);
+      loadBTS(yearForMonth(start), start);
     } else {
       document.getElementById('sec-bts').style.display = 'none';
     }
@@ -1744,7 +1832,7 @@ async function loadBTS(year, m) {
     const d = await r.json();
     if (!d.available) {
       badge.textContent = 'unavailable'; badge.style.color = '#f06292';
-      box.innerHTML = `<span style="color:#f0629288">Not yet published for ${MONTHS[m]} 2025</span> · BTS lags 3–6 months`;
+      box.innerHTML = `<span style="color:#f0629288">Not yet published for ${MONTHS[m]} ${yearForMonth(m)}</span> · BTS lags 3–6 months`;
       return;
     }
     badge.textContent = 'live'; badge.style.background = '#64ffda18'; badge.style.color = '#64ffda';
@@ -1767,12 +1855,13 @@ function renderBTS(d, m) {
 
 async function preloadAll() {
   preloading = true;
-  const months = [3,4,5,6,7,8,9,10,11].filter(m => !cache[cacheKey(2025, m)]);
+  // Chronological: Oct–Dec 2025 then Jan–Mar 2026
+  const months = [9,10,11,0,1,2].filter(m => !cache[cacheKey(yearForMonth(m), m)]);
   for (const m of months) {
     try {
-      const r = await fetch(`/api/flights/${m+1}`);
+      const r = await fetch(`/api/flights/${yearForMonth(m)}/${m+1}`);
       const j = await r.json();
-      if (!j.error) { cache[cacheKey(2025, m)] = j; drawTrend(); }
+      if (!j.error) { cache[cacheKey(yearForMonth(m), m)] = j; drawTrend(); }
     } catch(e) {}
     await delay(350);
   }
@@ -1806,7 +1895,7 @@ function filtered(list) {
 
 // ── Map render ────────────────────────────────────────────────────────────────
 const AIRPORT_LAYERS = ['arcs-arr','arcs-dep','airports-circle','airports-label'];
-const STATE_LAYERS   = ['state-line-arr','state-line-dep','state-arrow-arr','state-arrow-dep','state-circle','state-label'];
+const STATE_LAYERS   = ['state-line-arr','state-line-dep','state-arrow-arr','state-arrow-dep','state-circle','ord-state-label'];
 const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','region-arrow-dep','region-circle','region-label'];
 
 // ── Route Search ──────────────────────────────────────────────────────────────
@@ -1950,7 +2039,8 @@ function selectRoute(code) {
 
   // Fare intel
   const fi = FARE_INTEL[code];
-  const monthIdx = curMonth - 4;
+  // Map curMonth index to FARE_MULT position (0=Apr '25 … 8=Dec '25; Jan–Mar '26 reuse 0–2)
+  const monthIdx = yearForMonth(curMonth) === 2026 ? curMonth : Math.max(0, curMonth - 4);
   const fare  = fi ? Math.round(fi[0] * (FARE_MULT[fi[1]]?.[monthIdx]||1)) : null;
   const compLabel = fi ? ({c:'Contested',p:'Partial',m:'Monopoly'}[fi[1]]||'—') : '—';
   const compColor = fi ? ({c:'#1D9E75',p:'#BA7517',m:'#c0392b'}[fi[1]]||'#888') : '#888';
@@ -2241,9 +2331,10 @@ function applyColorMode() {
 }
 
 function periodLabel() {
+  const yr = yearForMonth(curMonth);
   return curMonth === curMonthEnd
-    ? `${MONTHS[curMonth]} ${curYear}`
-    : `${MONTHS[curMonth]}–${MONTHS[curMonthEnd]} ${curYear}`;
+    ? `${MONTHS[curMonth]} ${yr}`
+    : `${MONTHS[curMonth]}–${MONTHS[curMonthEnd]} ${yr}`;
 }
 
 function updateStats(fArr, fDep) {
@@ -2391,23 +2482,24 @@ function updateConfidence() {
 }
 
 function drawTrend() {
-  const available = [3,4,5,6,7,8,9,10,11];
-  const loaded    = available.filter(m => cache[cacheKey(curYear, m)]);
+  // Chronological: Oct '25, Nov '25, Dec '25, Jan '26, Feb '26, Mar '26
+  const available = [9,10,11,0,1,2];
+  const loaded    = available.filter(m => cache[cacheKey(yearForMonth(m), m)]);
   const pending   = available.length - loaded.length;
-  document.getElementById('trend-loading').textContent = (pending > 0 && curYear === 2025) ? `loading ${pending} more…` : '';
+  document.getElementById('trend-loading').textContent = pending > 0 ? `loading ${pending} more…` : '';
 
   const points = available.map(m => {
-    const d = cache[cacheKey(curYear, m)];
+    const d = cache[cacheKey(yearForMonth(m), m)];
     if (!d) return null;
     const fA = d.arrivals.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
     const fD = d.departures.filter(f => routeType==='all' || (routeType==='domestic')===!f.intl).filter(f=>curAirline==='all'||f.airline===curAirline);
     return (!showArr&&!showDep)?0 : (!showArr)?sumCount(fD) : (!showDep)?sumCount(fA) : sumCount(fA)+sumCount(fD);
   });
-  const labels = available.map(m => MONTHS[m]);
+  const labels = available.map(m => MONTHS[m] + (m <= 2 ? " '26" : " '25"));
 
   const c = document.getElementById('chart-trend');
   c.width = c.parentElement.clientWidth;
-  drawSparkline(c, points, labels, curAirline!=='all' ? alColor(curAirline) : '#41B6E6', curMonthEnd - 3);
+  drawSparkline(c, points, labels, curAirline!=='all' ? alColor(curAirline) : '#41B6E6', available.indexOf(curMonthEnd));
 }
 
 // ── Chart drawing ─────────────────────────────────────────────────────────────
@@ -2544,30 +2636,6 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 // ── Populate airline dropdown ─────────────────────────────────────────────────
-const DEFAULT_AIRLINES = ['United','American','Delta Air Lines','Southwest','Air Canada',
-  'Envoy Air','SkyWest Airlines','Spirit','Frontier','Alaska','British Airways',
-  'Lufthansa','Air France','KLM','Emirates','Japan Airlines','ANA','Korean Air'];
-
-function populateAirlineDropdown() {
-  const sel  = document.getElementById('airlineSelect');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="all">All Airlines</option>';
-
-  let sorted;
-  if (curData) {
-    const counts = {};
-    [...curData.arrivals,...curData.departures].forEach(f=>{ if(f.airline) counts[f.airline]=(counts[f.airline]||0)+(f.count||1); });
-    sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-    sorted.forEach(([name,cnt])=>{ const o=document.createElement('option'); o.value=name; o.textContent=`${name} (${cnt} flights)`; sel.appendChild(o); });
-  } else {
-    // No data loaded yet — show known ORD airlines without counts
-    DEFAULT_AIRLINES.forEach(name=>{ const o=document.createElement('option'); o.value=name; o.textContent=name; sel.appendChild(o); });
-    sorted = DEFAULT_AIRLINES.map(n=>[n,0]);
-  }
-
-  sel.value = (sorted||[]).find(([n])=>n===prev) ? prev : 'all';
-  buildLegend((sorted||[]).slice(0,7));
-}
 
 function buildLegend(airlines) {
   const lg = document.getElementById('al-legend');
@@ -2723,6 +2791,11 @@ function toggleInsights() {
   insightsOpen=!insightsOpen;
   document.getElementById('insights').classList.toggle('hidden',!insightsOpen);
   document.getElementById('btnInsights').classList.toggle('on-type',insightsOpen);
+  // On mobile, close sidebar when insights opens
+  if(insightsOpen && window.innerWidth<=768) {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-backdrop').classList.remove('show');
+  }
   if(insightsOpen&&curData){ const fA=filtered(curData.arrivals),fD=filtered(curData.departures); updateInsights(fA,fD); }
 }
 
@@ -2911,7 +2984,8 @@ function updateFareStory(fArr, fDep) {
 
   const cheapestMonthFares = fareMonthly(cheapest);
   const cheapMonthIdx = cheapestMonthFares ? cheapestMonthFares.indexOf(Math.min(...cheapestMonthFares)) : -1;
-  const cheapMonthName = cheapMonthIdx >= 0 ? MONTHS[cheapMonthIdx+3] : '';
+  const _fareMonthNames = ['APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const cheapMonthName = cheapMonthIdx >= 0 ? _fareMonthNames[cheapMonthIdx] : '';
 
   const showWarning = curAirline === 'all';
 
@@ -2967,7 +3041,9 @@ function openFareExplorer(code, name) {
   const als  = fareAirlines(code), mDisc = fareMorningDisc(code);
   const monthly = fareMonthly(code);
   const cheapIdx = monthly ? monthly.indexOf(Math.min(...monthly)) : -1;
-  const cheapMonthName = cheapIdx >= 0 ? MONTHS[cheapIdx+3] : '—';
+  // FARE_MULT[0-8] = Apr–Dec 2025; map back to month name
+  const fareMonthNames = ['APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const cheapMonthName = cheapIdx >= 0 ? fareMonthNames[cheapIdx] : '—';
   const cheapMonthFare = cheapIdx >= 0 ? monthly[cheapIdx] : avg;
 
   const visibleCodes = curData ? [...new Set([...filtered(curData.arrivals),...filtered(curData.departures)].filter(f=>!f.intl).map(f=>f.code))] : [];
@@ -2987,7 +3063,8 @@ function openFareExplorer(code, name) {
   const maxF = monthly ? Math.max(...monthly) : avg;
   const minF = monthly ? Math.min(...monthly) : avg;
   const barH = 40;
-  const barRows = monthly ? MONTHS.slice(3).map((m,i) => {
+  const fareMonthLabels = ['APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const barRows = monthly ? fareMonthLabels.map((m,i) => {
     const h = Math.round(((monthly[i]-minF)/(maxF-minF||1))*barH + 8);
     const color = i === cheapIdx ? '#1D9E75' : '#41B6E644';
     return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:2px">
@@ -3027,7 +3104,7 @@ function openFareExplorer(code, name) {
       <span style="font-size:11px;color:#AAAAAA"> saved vs avg uncontested route</span>
     </div>` : ''}
 
-    <div class="fex-section-title">FARE BY MONTH (APR–DEC 2025)</div>
+    <div class="fex-section-title">FARE BY MONTH (APR–DEC 2025 EST.)</div>
     <div style="display:flex;align-items:flex-end;height:${barH+50}px;gap:2px;margin-bottom:4px">${barRows}</div>
     <div style="font-size:10px;color:#AAAAAA;margin-bottom:2px">Cheapest month: <strong style="color:#1D9E75">${cheapMonthName} → $${cheapMonthFare}</strong></div>
     ${mDisc ? `<div style="font-size:10px;color:#AAAAAA;margin-bottom:10px">Cheapest time: <strong>Morning</strong> (${mDisc}% cheaper than evening)</div>` : ''}

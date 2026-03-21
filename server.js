@@ -201,7 +201,11 @@ function loadDiskCache() {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const raw = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-      Object.entries(raw).forEach(([k, v]) => cache.set(isNaN(k) ? k : Number(k), v));
+      Object.entries(raw).forEach(([k, v]) => {
+        // Migrate old integer keys (month only) → "2025-{month}" string keys
+        const key = isNaN(k) ? k : `2025-${Number(k)}`;
+        cache.set(key, v);
+      });
       console.log(`  Disk cache loaded — ${cache.size} entries`);
     }
   } catch (e) { console.warn('  Disk cache load failed:', e.message); }
@@ -256,14 +260,19 @@ function getSampleDays(year, month) {
 
 // ── Main flight data endpoint — 8 sample days × 24h ──────────────────────────
 // 4 weekdays + 3 weekend days + 1 holiday/peak day, evenly spread across month
-app.get('/api/flights/:month', async (req, res) => {
+app.get('/api/flights/:year/:month', async (req, res) => {
+  const year  = parseInt(req.params.year,  10);
   const month = parseInt(req.params.month, 10);
+  if (isNaN(year) || year < 2025 || year > 2026) {
+    return res.status(400).json({ error: 'Year must be 2025 or 2026' });
+  }
   if (isNaN(month) || month < 1 || month > 12) {
     return res.status(400).json({ error: 'Month must be 1–12' });
   }
-  if (cache.has(month)) {
-    console.log(`Cache hit — month ${month}`);
-    return res.json(cache.get(month));
+  const ck = `${year}-${month}`;
+  if (cache.has(ck)) {
+    console.log(`Cache hit — ${year}/${month}`);
+    return res.json(cache.get(ck));
   }
 
   // Primary: 3 representative days (quota-efficient); secondary fallbacks for rate limits
@@ -293,7 +302,7 @@ app.get('/api/flights/:month', async (req, res) => {
     const allArrivals = [], allDepartures = [], dailyTotals = {};
     try {
       for (const d of strategy.days) {
-        const date = `2025-${pad(month)}-${pad(d)}`;
+        const date = `${year}-${pad(month)}-${pad(d)}`;
         let day;
         if (strategy.fullDay) {
           day = await fetchDay(date);
@@ -312,7 +321,7 @@ app.get('/api/flights/:month', async (req, res) => {
       }
 
       const confidence = strategy.confidence ?? calcConfidence(dailyTotals);
-      const sampleDays = strategy.days.map(d => `2025-${pad(month)}-${pad(d)}`);
+      const sampleDays = strategy.days.map(d => `${year}-${pad(month)}-${pad(d)}`);
       const result = {
         arrivals:    allArrivals,
         departures:  allDepartures,
@@ -322,8 +331,8 @@ app.get('/api/flights/:month', async (req, res) => {
         confidence,
       };
 
-      console.log(`✓ Month ${month} [${strategy.label}]: ${allArrivals.length} arr, ${allDepartures.length} dep | confidence=${confidence}%`);
-      cache.set(month, result);
+      console.log(`✓ ${year}/${month} [${strategy.label}]: ${allArrivals.length} arr, ${allDepartures.length} dep | confidence=${confidence}%`);
+      cache.set(ck, result);
       saveDiskCache();
       return res.json(result);
 
@@ -335,7 +344,7 @@ app.get('/api/flights/:month', async (req, res) => {
       const is429   = status === 429;
 
       if (isQuota) {
-        console.error(`✗ Month ${month}: AeroDataBox monthly quota exceeded`);
+        console.error(`✗ ${year}/${month}: AeroDataBox monthly quota exceeded`);
         return res.status(402).json({
           error: 'quota_exceeded',
           message: 'AeroDataBox monthly API quota has been reached. Quota resets on the 1st of next month. Cached months still load instantly.',
@@ -344,7 +353,7 @@ app.get('/api/flights/:month', async (req, res) => {
 
       console.warn(`  ↓ Strategy "${strategy.label}" failed${is429 ? ' (rate limit)' : ''} — trying next fallback…`);
       if (strategy === strategies[strategies.length - 1]) {
-        console.error(`✗ Month ${month}: all strategies failed`);
+        console.error(`✗ ${year}/${month}: all strategies failed`);
         return res.status(500).json({ error: err.message, detail: body || err.message });
       }
       await sleep(3000);
@@ -546,21 +555,25 @@ app.listen(PORT, () => {
   warmCache();
 });
 
-// Pre-fetch all 9 months in the background so first visitors get instant data
+// Pre-fetch available months in the background:
+//   Oct–Dec 2025 — served from disk cache (within 180-day window when originally fetched)
+//   Jan–Mar 2026 — within 180-day AeroDataBox lookback window as of today
 async function warmCache() {
-  const months = [4,5,6,7,8,9,10,11,12];
-  const uncached = months.filter(m => !cache.has(m));
+  const targets = [
+    { year:2025, month:10 }, { year:2025, month:11 }, { year:2025, month:12 },
+    { year:2026, month:1  }, { year:2026, month:2  }, { year:2026, month:3  },
+  ];
+  const uncached = targets.filter(({ year, month }) => !cache.has(`${year}-${month}`));
   if (uncached.length === 0) { console.log('  Cache warm — all months ready'); return; }
-  console.log(`  Warming cache for months: ${uncached.join(', ')} (background)`);
-  for (const m of uncached) {
+  console.log(`  Warming cache for: ${uncached.map(t=>`${t.year}/${t.month}`).join(', ')} (background)`);
+  for (const { year, month } of uncached) {
     try {
       const base = `http://localhost:${PORT}`;
-      const r = await axios.get(`${base}/api/flights/${m}`, { timeout: 30000 });
-      if (r.data && !r.data.error) console.log(`  ✓ Cached month ${m}`);
+      const r = await axios.get(`${base}/api/flights/${year}/${month}`, { timeout: 30000 });
+      if (r.data && !r.data.error) console.log(`  ✓ Cached ${year}/${month}`);
     } catch (e) {
-      console.log(`  ✗ Could not warm month ${m}: ${e.message}`);
+      console.log(`  ✗ Could not warm ${year}/${month}: ${e.message}`);
     }
-    // Small delay between requests to avoid hammering the API
     await new Promise(res => setTimeout(res, 2000));
   }
   console.log('  Cache warm complete');
