@@ -36,6 +36,7 @@ body {
   background:var(--bg); color:var(--text);
   font-family:'Roboto', system-ui, sans-serif;
   height:100vh; display:flex; flex-direction:column; overflow:hidden;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
 }
 
 /* ── Header ── */
@@ -83,6 +84,7 @@ body {
   padding:7px 13px; border-radius:5px; cursor:pointer;
   font-size:12px; font-family:'Roboto',sans-serif; font-weight:500;
   transition:all .15s; white-space:nowrap;
+  -webkit-font-smoothing:antialiased; transform:translateZ(0);
 }
 .tog:hover:not(:disabled) { border-color:var(--blue); color:var(--blue); background:#41B6E610; }
 .tog.on-arr   { border-color:var(--blue);  color:var(--blue);  background:#41B6E618; }
@@ -142,9 +144,9 @@ select#airlineSelect:focus { border-color:var(--blue); }
 #insights {
   position:absolute; right:14px; top:12px; bottom:12px;
   width:308px; z-index:15;
-  background:rgba(10,10,10,0.96); border:1px solid var(--border-hi);
+  background:#0a0a0a; border:1px solid var(--border-hi);
   border-top:2px solid var(--blue);
-  border-radius:8px; backdrop-filter:blur(16px);
+  border-radius:8px;
   display:flex; flex-direction:column; overflow:hidden;
   transition:transform .28s cubic-bezier(.4,0,.2,1), opacity .28s;
 }
@@ -873,6 +875,8 @@ let viewMode = 'airport';
 let timeFilter = 'all';
 let fareMode = false;
 let compareMode = false;
+let playIntro = false;
+let introAnimFrame = null;
 
 // ── Fare Intelligence data (BTS DB1B patterns, ORD domestic routes) ───────────
 // Format: [avgFare, comp, airlines[], morningDiscountPct]
@@ -1298,6 +1302,7 @@ async function loadRange(start, end) {
     updateSourceBadge();
     updateTimeFilterAvail();
     populateAirlineDropdown();
+    playIntro = true;
     render();
     // BTS cross-validation only meaningful for single month
     if (start === end) {
@@ -1408,6 +1413,25 @@ const AIRPORT_LAYERS = ['arcs-arr','arcs-dep','airports-circle','airports-label'
 const STATE_LAYERS   = ['state-line-arr','state-line-dep','state-arrow-arr','state-arrow-dep','state-circle','state-label'];
 const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','region-arrow-dep','region-circle','region-label'];
 
+function animateArcIntro(arcFeatures) {
+  if (introAnimFrame) cancelAnimationFrame(introAnimFrame);
+  const DURATION = 3000;
+  const start = performance.now();
+  function frame(now) {
+    const raw = Math.min((now - start) / DURATION, 1);
+    const t   = 1 - Math.pow(1 - raw, 3); // ease-out cubic
+    const animated = arcFeatures.map(f => {
+      const [[x0,y0],[x1,y1]] = f.geometry.coordinates;
+      return { ...f, geometry:{ type:'LineString',
+        coordinates:[[x0,y0],[x0+(x1-x0)*t, y0+(y1-y0)*t]] }};
+    });
+    if (map.getSource('arcs')) map.getSource('arcs').setData(fc(animated));
+    if (raw < 1) { introAnimFrame = requestAnimationFrame(frame); }
+    else { if (map.getSource('arcs')) map.getSource('arcs').setData(fc(arcFeatures)); }
+  }
+  introAnimFrame = requestAnimationFrame(frame);
+}
+
 function render() {
   if (!curData || !map.isStyleLoaded()) return;
   const fArr = showArr ? filtered(curData.arrivals)  : [];
@@ -1454,7 +1478,8 @@ function render() {
   });
 
   if (viewMode === 'airport') {
-    map.getSource('arcs').setData(fc(arcFeatures));
+    if (playIntro) { playIntro = false; animateArcIntro(arcFeatures); }
+    else { map.getSource('arcs').setData(fc(arcFeatures)); }
     map.getSource('airports').setData(fc(aptFeatures));
     applyColorMode();
   } else if (viewMode === 'state') {
