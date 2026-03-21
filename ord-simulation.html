@@ -623,7 +623,45 @@ select#airlineSelect:focus { border-color:var(--blue); }
   <!-- ── Left Control Sidebar ── -->
   <div id="sidebar">
 
-    <!-- ── PRIMARY: UA vs AA ── -->
+    <!-- 1. PERIOD — what time window? -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#128197; Period · 2025</div>
+      <div class="ctrl-sub-label" id="rangeLabel">Select a month</div>
+      <div id="monthBtns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;"></div>
+      <div style="font-size:10px;color:#444;margin-top:6px">Tap · Tap second for range · Double-tap single</div>
+    </div>
+
+    <!-- 2. ROUTE TYPE — Domestic / Intl, arrivals / departures -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#127760; Route Type</div>
+      <div class="ctrl-row">
+        <button class="tog on-type" id="btnAll"  onclick="setRoute('all')"           style="flex:1">All</button>
+        <button class="tog"         id="btnDom"  onclick="setRoute('domestic')"      style="flex:1">Domestic</button>
+        <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
+      </div>
+      <div class="ctrl-sub-label" style="margin-top:10px">Traffic Direction</div>
+      <div id="row-arr-dep" class="ctrl-row">
+        <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arrivals</button>
+        <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Departures</button>
+      </div>
+    </div>
+
+    <!-- 3. VIEW LEVEL — Airport / State / Region -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#128506; View Level</div>
+      <div class="ctrl-row" style="margin-bottom:8px">
+        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
+        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
+        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
+      </div>
+      <div id="row-color-btns" class="ctrl-row">
+        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
+        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
+      </div>
+      <div id="row-color-label" style="display:none"></div>
+    </div>
+
+    <!-- 4. UA vs AA — primary focus -->
     <div id="sidebar-primary">
       <div class="primary-title">
         <span class="pt-ua">&#9992; UNITED</span>
@@ -639,12 +677,12 @@ select#airlineSelect:focus { border-color:var(--blue); }
       <button class="tog" id="btnFareIntel" onclick="toggleFareMode()" style="width:100%;font-size:12px;padding:9px">&#36; Fare Intel · Competition &amp; Pricing</button>
     </div>
 
-    <!-- ── ROUTE SEARCH ── -->
+    <!-- 5. ROUTE SEARCH — drill into a specific route -->
     <div class="ctrl-section">
       <div class="ctrl-section-title">&#128269; Route Search</div>
       <div style="position:relative">
         <span class="search-icon">&#9992;</span>
-        <input id="route-search-input" type="text" placeholder="Airport code or city…" oninput="onRouteSearch(this.value)" autocomplete="off"/>
+        <input id="route-search-input" type="text" placeholder="City or airport code…" oninput="onRouteSearch(this.value)" autocomplete="off"/>
         <div id="route-search-results"></div>
       </div>
       <!-- Selected route chip — shown when a route is active -->
@@ -670,45 +708,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
       </div>
     </div>
 
-    <!-- TIME PERIOD always visible -->
-    <div class="ctrl-section">
-      <div class="ctrl-section-title">&#128197; Period · 2025</div>
-      <div class="ctrl-sub-label" id="rangeLabel">Select a month</div>
-      <div id="monthBtns" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;"></div>
-      <div style="font-size:10px;color:#444;margin-top:6px">Tap · Tap second for range · Double-tap single</div>
-    </div>
-
-    <!-- 1. ROUTE TYPE — Domestic / Intl first -->
-    <div class="ctrl-section">
-      <div class="ctrl-section-title">&#127760; Route Type</div>
-      <div class="ctrl-row">
-        <button class="tog on-type" id="btnAll"  onclick="setRoute('all')"           style="flex:1">All</button>
-        <button class="tog"         id="btnDom"  onclick="setRoute('domestic')"      style="flex:1">Domestic</button>
-        <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
-      </div>
-      <div class="ctrl-sub-label" style="margin-top:10px">Traffic Direction</div>
-      <div id="row-arr-dep" class="ctrl-row">
-        <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arrivals</button>
-        <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Departures</button>
-      </div>
-    </div>
-
-    <!-- 2. VIEW — Airport / State / Region second -->
-    <div class="ctrl-section">
-      <div class="ctrl-section-title">&#128506; View Level</div>
-      <div class="ctrl-row" style="margin-bottom:8px">
-        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
-        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
-        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
-      </div>
-      <div id="row-color-btns" class="ctrl-row">
-        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
-        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
-      </div>
-      <div id="row-color-label" style="display:none"></div>
-    </div>
-
-    <!-- FILTERS accordion — additional filters -->
+    <!-- 6. MORE FILTERS accordion -->
     <button id="filters-toggle" onclick="toggleFilters()">
       <span>&#9881; More Filters</span>
       <span id="filters-arrow">&#9660;</span>
@@ -883,6 +883,193 @@ select#airlineSelect:focus { border-color:var(--blue); }
 // ── Constants ────────────────────────────────────────────────────────────────
 const MONTHS  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
 const ORD_LNG = -87.9073, ORD_LAT = 41.9742;
+
+// ── Static airport database: code → { city, name, intl } ─────────────────────
+const AIRPORT_DB = {
+  // Domestic — major hubs
+  ATL:{ city:'Atlanta',            name:'Hartsfield-Jackson Atlanta Intl',     intl:false },
+  LAX:{ city:'Los Angeles',        name:'Los Angeles Intl',                    intl:false },
+  DFW:{ city:'Dallas / Fort Worth',name:'Dallas/Fort Worth Intl',              intl:false },
+  DEN:{ city:'Denver',             name:'Denver Intl',                         intl:false },
+  JFK:{ city:'New York',           name:'John F. Kennedy Intl',                intl:false },
+  LGA:{ city:'New York',           name:'LaGuardia',                           intl:false },
+  EWR:{ city:'Newark / New York',  name:'Newark Liberty Intl',                 intl:false },
+  SFO:{ city:'San Francisco',      name:'San Francisco Intl',                  intl:false },
+  SEA:{ city:'Seattle',            name:'Seattle-Tacoma Intl',                 intl:false },
+  MCO:{ city:'Orlando',            name:'Orlando Intl',                        intl:false },
+  MIA:{ city:'Miami',              name:'Miami Intl',                          intl:false },
+  FLL:{ city:'Fort Lauderdale',    name:'Fort Lauderdale-Hollywood Intl',      intl:false },
+  CLT:{ city:'Charlotte',          name:'Charlotte Douglas Intl',              intl:false },
+  PHX:{ city:'Phoenix',            name:'Phoenix Sky Harbor Intl',             intl:false },
+  IAH:{ city:'Houston',            name:'George Bush Intercontinental',        intl:false },
+  HOU:{ city:'Houston',            name:'William P. Hobby',                    intl:false },
+  BOS:{ city:'Boston',             name:'Logan Intl',                          intl:false },
+  MSP:{ city:'Minneapolis',        name:'Minneapolis-Saint Paul Intl',         intl:false },
+  DTW:{ city:'Detroit',            name:'Detroit Metropolitan Wayne County',   intl:false },
+  PHL:{ city:'Philadelphia',       name:'Philadelphia Intl',                   intl:false },
+  LAS:{ city:'Las Vegas',          name:'Harry Reid Intl',                     intl:false },
+  BWI:{ city:'Baltimore',          name:'Baltimore/Washington Intl',           intl:false },
+  DCA:{ city:'Washington DC',      name:'Ronald Reagan Washington National',   intl:false },
+  IAD:{ city:'Washington DC',      name:'Dulles Intl',                        intl:false },
+  MDW:{ city:'Chicago',            name:'Chicago Midway Intl',                 intl:false },
+  SLC:{ city:'Salt Lake City',     name:'Salt Lake City Intl',                 intl:false },
+  SAN:{ city:'San Diego',          name:'San Diego Intl',                      intl:false },
+  TPA:{ city:'Tampa',              name:'Tampa Intl',                          intl:false },
+  AUS:{ city:'Austin',             name:'Austin-Bergstrom Intl',               intl:false },
+  PDX:{ city:'Portland',           name:'Portland Intl',                       intl:false },
+  STL:{ city:'St. Louis',          name:'St. Louis Lambert Intl',              intl:false },
+  MCI:{ city:'Kansas City',        name:'Kansas City Intl',                    intl:false },
+  RDU:{ city:'Raleigh-Durham',     name:'Raleigh-Durham Intl',                 intl:false },
+  IND:{ city:'Indianapolis',       name:'Indianapolis Intl',                   intl:false },
+  CMH:{ city:'Columbus',           name:'John Glenn Columbus Intl',            intl:false },
+  CVG:{ city:'Cincinnati',         name:'Cincinnati/Northern Kentucky Intl',   intl:false },
+  PIT:{ city:'Pittsburgh',         name:'Pittsburgh Intl',                     intl:false },
+  BNA:{ city:'Nashville',          name:'Nashville Intl',                      intl:false },
+  MEM:{ city:'Memphis',            name:'Memphis Intl',                        intl:false },
+  MSY:{ city:'New Orleans',        name:'Louis Armstrong New Orleans Intl',    intl:false },
+  SAT:{ city:'San Antonio',        name:'San Antonio Intl',                    intl:false },
+  ABQ:{ city:'Albuquerque',        name:'Albuquerque Intl Sunport',            intl:false },
+  OMA:{ city:'Omaha',              name:'Eppley Airfield',                     intl:false },
+  OKC:{ city:'Oklahoma City',      name:'Will Rogers World',                   intl:false },
+  TUL:{ city:'Tulsa',              name:'Tulsa Intl',                          intl:false },
+  DSM:{ city:'Des Moines',         name:'Des Moines Intl',                     intl:false },
+  GRR:{ city:'Grand Rapids',       name:'Gerald R. Ford Intl',                 intl:false },
+  MKE:{ city:'Milwaukee',          name:'Milwaukee Mitchell Intl',             intl:false },
+  MSN:{ city:'Madison',            name:'Dane County Regional',                intl:false },
+  ROC:{ city:'Rochester',          name:'Greater Rochester Intl',              intl:false },
+  BUF:{ city:'Buffalo',            name:'Buffalo Niagara Intl',                intl:false },
+  ALB:{ city:'Albany',             name:'Albany Intl',                         intl:false },
+  SYR:{ city:'Syracuse',           name:'Syracuse Hancock Intl',               intl:false },
+  RIC:{ city:'Richmond',           name:'Richmond Intl',                       intl:false },
+  ORF:{ city:'Norfolk',            name:'Norfolk Intl',                        intl:false },
+  GSO:{ city:'Greensboro',         name:'Piedmont Triad Intl',                 intl:false },
+  CHS:{ city:'Charleston',         name:'Charleston Intl',                     intl:false },
+  SAV:{ city:'Savannah',           name:'Savannah/Hilton Head Intl',           intl:false },
+  JAX:{ city:'Jacksonville',       name:'Jacksonville Intl',                   intl:false },
+  RSW:{ city:'Fort Myers',         name:'Southwest Florida Intl',              intl:false },
+  PBI:{ city:'West Palm Beach',    name:'Palm Beach Intl',                     intl:false },
+  SRQ:{ city:'Sarasota',           name:'Sarasota-Bradenton Intl',             intl:false },
+  ELP:{ city:'El Paso',            name:'El Paso Intl',                        intl:false },
+  AMA:{ city:'Amarillo',           name:'Rick Husband Amarillo Intl',          intl:false },
+  LBB:{ city:'Lubbock',            name:'Lubbock Preston Smith Intl',          intl:false },
+  CRP:{ city:'Corpus Christi',     name:'Corpus Christi Intl',                 intl:false },
+  MAF:{ city:'Midland',            name:'Midland Intl Air & Space Port',       intl:false },
+  DAL:{ city:'Dallas',             name:'Dallas Love Field',                   intl:false },
+  OAK:{ city:'Oakland',            name:'Oakland Intl',                        intl:false },
+  SJC:{ city:'San Jose',           name:'San Jose Mineta Intl',                intl:false },
+  BUR:{ city:'Burbank',            name:'Hollywood Burbank',                   intl:false },
+  ONT:{ city:'Ontario',            name:'Ontario Intl',                        intl:false },
+  SNA:{ city:'Orange County',      name:'John Wayne',                          intl:false },
+  SMF:{ city:'Sacramento',         name:'Sacramento Intl',                     intl:false },
+  FAT:{ city:'Fresno',             name:'Fresno Yosemite Intl',                intl:false },
+  SBA:{ city:'Santa Barbara',      name:'Santa Barbara',                       intl:false },
+  MRY:{ city:'Monterey',           name:'Monterey Regional',                   intl:false },
+  PSP:{ city:'Palm Springs',       name:'Palm Springs Intl',                   intl:false },
+  RNO:{ city:'Reno',               name:'Reno-Tahoe Intl',                     intl:false },
+  BOI:{ city:'Boise',              name:'Boise Airport',                       intl:false },
+  GEG:{ city:'Spokane',            name:'Spokane Intl',                        intl:false },
+  BZN:{ city:'Bozeman',            name:'Bozeman Yellowstone Intl',            intl:false },
+  MSO:{ city:'Missoula',           name:'Missoula Montana',                    intl:false },
+  BIL:{ city:'Billings',           name:'Billings Logan Intl',                 intl:false },
+  FSD:{ city:'Sioux Falls',        name:'Sioux Falls Regional',                intl:false },
+  FAR:{ city:'Fargo',              name:'Hector Intl',                         intl:false },
+  COS:{ city:'Colorado Springs',   name:'Colorado Springs',                    intl:false },
+  GJT:{ city:'Grand Junction',     name:'Grand Junction Regional',             intl:false },
+  ASE:{ city:'Aspen',              name:'Aspen/Pitkin County',                 intl:false },
+  EGE:{ city:'Vail',               name:'Eagle County Regional',               intl:false },
+  HDN:{ city:'Steamboat Springs',  name:'Yampa Valley',                        intl:false },
+  HNL:{ city:'Honolulu',           name:'Daniel K. Inouye Intl',               intl:false },
+  OGG:{ city:'Maui',               name:'Kahului',                             intl:false },
+  KOA:{ city:'Kona',               name:'Ellison Onizuka Kona Intl',           intl:false },
+  LIH:{ city:'Kauai',              name:'Lihue',                               intl:false },
+  ANC:{ city:'Anchorage',          name:'Ted Stevens Anchorage Intl',          intl:false },
+  FAI:{ city:'Fairbanks',          name:'Fairbanks Intl',                      intl:false },
+  MHT:{ city:'Manchester',         name:'Manchester-Boston Regional',          intl:false },
+  PWM:{ city:'Portland (ME)',      name:'Portland Intl Jetport',               intl:false },
+  BTV:{ city:'Burlington',         name:'Burlington Intl',                     intl:false },
+  ACK:{ city:'Nantucket',          name:'Nantucket Memorial',                  intl:false },
+  MVY:{ city:"Martha's Vineyard",  name:"Martha's Vineyard",                   intl:false },
+  HYA:{ city:'Hyannis',            name:'Barnstable Municipal',                intl:false },
+  TYS:{ city:'Knoxville',          name:'McGhee Tyson',                        intl:false },
+  BHM:{ city:'Birmingham',         name:'Birmingham-Shuttlesworth Intl',       intl:false },
+  HSV:{ city:'Huntsville',         name:'Huntsville Intl',                     intl:false },
+  MOB:{ city:'Mobile',             name:'Mobile Regional',                     intl:false },
+  GPT:{ city:'Gulfport',           name:'Gulfport-Biloxi',                     intl:false },
+  JAN:{ city:'Jackson (MS)',       name:'Jackson-Medgar Wiley Evers Intl',     intl:false },
+  LIT:{ city:'Little Rock',        name:'Clinton National',                    intl:false },
+  XNA:{ city:'Fayetteville',       name:'Northwest Arkansas National',         intl:false },
+  TRI:{ city:'Tri-Cities',         name:'Tri-Cities Regional',                 intl:false },
+  EVV:{ city:'Evansville',         name:'Evansville Regional',                 intl:false },
+  SBN:{ city:'South Bend',         name:'South Bend Intl',                     intl:false },
+  FWA:{ city:'Fort Wayne',         name:'Fort Wayne Intl',                     intl:false },
+  TOL:{ city:'Toledo',             name:'Toledo Express',                      intl:false },
+  DAY:{ city:'Dayton',             name:'Dayton Intl',                         intl:false },
+  CAK:{ city:'Akron',              name:'Akron-Canton',                        intl:false },
+  CLE:{ city:'Cleveland',          name:'Cleveland Hopkins Intl',              intl:false },
+  SJU:{ city:'San Juan',           name:'Luis Muñoz Marín Intl',               intl:false },
+  RFD:{ city:'Rockford',           name:'Chicago Rockford Intl',               intl:false },
+  // International
+  LHR:{ city:'London',             name:'Heathrow',                            intl:true  },
+  LGW:{ city:'London',             name:'Gatwick',                             intl:true  },
+  CDG:{ city:'Paris',              name:'Charles de Gaulle',                   intl:true  },
+  ORY:{ city:'Paris',              name:'Orly',                                intl:true  },
+  FRA:{ city:'Frankfurt',          name:'Frankfurt am Main',                   intl:true  },
+  MUC:{ city:'Munich',             name:'Munich Intl',                         intl:true  },
+  AMS:{ city:'Amsterdam',          name:'Schiphol',                            intl:true  },
+  ZRH:{ city:'Zurich',             name:'Zurich',                              intl:true  },
+  MAD:{ city:'Madrid',             name:'Adolfo Suárez Madrid-Barajas',        intl:true  },
+  BCN:{ city:'Barcelona',          name:'El Prat',                             intl:true  },
+  FCO:{ city:'Rome',               name:'Fiumicino',                           intl:true  },
+  MXP:{ city:'Milan',              name:'Malpensa',                            intl:true  },
+  VIE:{ city:'Vienna',             name:'Vienna Intl',                         intl:true  },
+  CPH:{ city:'Copenhagen',         name:'Kastrup',                             intl:true  },
+  ARN:{ city:'Stockholm',          name:'Arlanda',                             intl:true  },
+  HEL:{ city:'Helsinki',           name:'Helsinki-Vantaa',                     intl:true  },
+  OSL:{ city:'Oslo',               name:'Gardermoen',                          intl:true  },
+  DUB:{ city:'Dublin',             name:'Dublin',                              intl:true  },
+  BRU:{ city:'Brussels',           name:'Brussels',                            intl:true  },
+  LIS:{ city:'Lisbon',             name:'Humberto Delgado',                    intl:true  },
+  ATH:{ city:'Athens',             name:'Athens Intl Eleftherios Venizelos',   intl:true  },
+  IST:{ city:'Istanbul',           name:'Istanbul',                            intl:true  },
+  KEF:{ city:'Reykjavik',          name:'Keflavik',                            intl:true  },
+  NRT:{ city:'Tokyo',              name:'Narita Intl',                         intl:true  },
+  HND:{ city:'Tokyo',              name:'Haneda',                              intl:true  },
+  HKG:{ city:'Hong Kong',          name:'Hong Kong Intl',                      intl:true  },
+  ICN:{ city:'Seoul',              name:'Incheon Intl',                        intl:true  },
+  PEK:{ city:'Beijing',            name:'Capital Intl',                        intl:true  },
+  PVG:{ city:'Shanghai',           name:'Pudong Intl',                         intl:true  },
+  NGO:{ city:'Nagoya',             name:'Chubu Centrair Intl',                 intl:true  },
+  KIX:{ city:'Osaka',              name:'Kansai Intl',                         intl:true  },
+  SIN:{ city:'Singapore',          name:'Changi',                              intl:true  },
+  BKK:{ city:'Bangkok',            name:'Suvarnabhumi',                        intl:true  },
+  DEL:{ city:'Delhi',              name:'Indira Gandhi Intl',                  intl:true  },
+  BOM:{ city:'Mumbai',             name:'Chhatrapati Shivaji Maharaj Intl',    intl:true  },
+  DXB:{ city:'Dubai',              name:'Dubai Intl',                          intl:true  },
+  AUH:{ city:'Abu Dhabi',          name:'Zayed Intl',                          intl:true  },
+  DOH:{ city:'Doha',               name:'Hamad Intl',                          intl:true  },
+  JNB:{ city:'Johannesburg',       name:'O.R. Tambo Intl',                     intl:true  },
+  CAI:{ city:'Cairo',              name:'Cairo Intl',                          intl:true  },
+  YYZ:{ city:'Toronto',            name:'Pearson Intl',                        intl:true  },
+  YUL:{ city:'Montreal',           name:'Pierre Elliott Trudeau Intl',         intl:true  },
+  YVR:{ city:'Vancouver',          name:'Vancouver Intl',                      intl:true  },
+  YYC:{ city:'Calgary',            name:'Calgary Intl',                        intl:true  },
+  YOW:{ city:'Ottawa',             name:'Ottawa Macdonald-Cartier Intl',       intl:true  },
+  YWG:{ city:'Winnipeg',           name:'Winnipeg Richardson Intl',            intl:true  },
+  MEX:{ city:'Mexico City',        name:'Benito Juárez Intl',                  intl:true  },
+  CUN:{ city:'Cancun',             name:'Cancun Intl',                         intl:true  },
+  GDL:{ city:'Guadalajara',        name:'Don Miguel Hidalgo y Costilla Intl',  intl:true  },
+  PTY:{ city:'Panama City',        name:'Tocumen Intl',                        intl:true  },
+  BOG:{ city:'Bogota',             name:'El Dorado Intl',                      intl:true  },
+  GRU:{ city:'São Paulo',          name:'Guarulhos Intl',                      intl:true  },
+  EZE:{ city:'Buenos Aires',       name:'Ezeiza Intl',                         intl:true  },
+  SCL:{ city:'Santiago',           name:'Arturo Merino Benítez Intl',          intl:true  },
+  LIM:{ city:'Lima',               name:'Jorge Chávez Intl',                   intl:true  },
+  SYD:{ city:'Sydney',             name:'Kingsford Smith',                     intl:true  },
+  MEL:{ city:'Melbourne',          name:'Melbourne',                           intl:true  },
+  BEG:{ city:'Belgrade',           name:'Nikola Tesla',                        intl:true  },
+  STR:{ city:'Stuttgart',          name:'Stuttgart',                           intl:true  },
+  ANA:{ city:'Tokyo',              name:'ANA Haneda',                          intl:true  },
+};
 
 const AIRLINE_COLORS = {
   'United':'#4fc3f7','American':'#ef5350','Delta Air Lines':'#7c4dff',
@@ -1624,30 +1811,74 @@ const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','
 // ── Route Search ──────────────────────────────────────────────────────────────
 function onRouteSearch(q) {
   const box = document.getElementById('route-search-results');
-  if (!curData || q.trim().length < 1) { box.style.display='none'; return; }
-  const term = q.toUpperCase().trim();
-  const apt = {};
-  [...curData.arrivals, ...curData.departures].forEach(f => {
-    if (!apt[f.code]) apt[f.code] = { code:f.code, name:f.name||f.code, arr:0, dep:0, intl:f.intl };
+  if (q.trim().length < 1) { box.style.display='none'; return; }
+  const term = q.trim().toUpperCase();
+
+  // Build flight-count map from loaded data (optional — enhances results with live counts)
+  const flightCounts = {};
+  if (curData) {
+    curData.arrivals.forEach(f  => { if(!flightCounts[f.code]) flightCounts[f.code]={arr:0,dep:0}; flightCounts[f.code].arr+=(f.count||1); });
+    curData.departures.forEach(f=> { if(!flightCounts[f.code]) flightCounts[f.code]={arr:0,dep:0}; flightCounts[f.code].dep+=(f.count||1); });
+  }
+
+  // Score each airport in the static DB against the query
+  const scored = [];
+  Object.entries(AIRPORT_DB).forEach(([code, info]) => {
+    const cityU  = info.city.toUpperCase();
+    const nameU  = info.name.toUpperCase();
+    let score = 0;
+    if (code === term)                     score = 100;          // exact code match
+    else if (code.startsWith(term))        score = 80;           // code prefix
+    else if (cityU === term)               score = 90;           // exact city
+    else if (cityU.startsWith(term))       score = 70;           // city prefix
+    else if (cityU.includes(term))         score = 50;           // city contains
+    else if (nameU.includes(term))         score = 30;           // airport name contains
+    if (score === 0) return;
+    const fc = flightCounts[code] || { arr:0, dep:0 };
+    scored.push({ code, city:info.city, name:info.name, intl:info.intl, arr:fc.arr, dep:fc.dep, score, total:fc.arr+fc.dep });
   });
-  curData.arrivals.forEach(f   => { if(apt[f.code]) apt[f.code].arr += (f.count||1); });
-  curData.departures.forEach(f => { if(apt[f.code]) apt[f.code].dep += (f.count||1); });
 
-  const results = Object.values(apt)
-    .filter(a => a.code.includes(term) || a.name.toUpperCase().includes(term))
-    .sort((a,b) => (b.arr+b.dep)-(a.arr+a.dep))
-    .slice(0, 8);
+  // Also search live data for codes not in static DB (e.g. regional airports)
+  if (curData) {
+    const liveApt = {};
+    [...curData.arrivals,...curData.departures].forEach(f => {
+      if (AIRPORT_DB[f.code]) return; // already covered
+      if (!liveApt[f.code]) liveApt[f.code] = { code:f.code, city:'', name:f.name||f.code, intl:f.intl, arr:0, dep:0 };
+    });
+    curData.arrivals.forEach(f  => { if(liveApt[f.code]) liveApt[f.code].arr+=(f.count||1); });
+    curData.departures.forEach(f=> { if(liveApt[f.code]) liveApt[f.code].dep+=(f.count||1); });
+    Object.values(liveApt).forEach(a => {
+      const codeU = a.code.toUpperCase();
+      const nameU = a.name.toUpperCase();
+      let score = 0;
+      if (codeU === term)           score = 80;
+      else if (codeU.startsWith(term)) score = 60;
+      else if (nameU.includes(term))   score = 25;
+      if (score > 0) scored.push({ ...a, score, total:a.arr+a.dep });
+    });
+  }
 
-  if (!results.length) { box.style.display='none'; return; }
-  box.innerHTML = results.map(a => `
-    <div class="rs-item" onclick="selectRoute('${a.code}')">
-      <span class="rs-code" style="color:${a.intl?'#F5A623':'#41B6E6'}">${a.code}</span>
-      <span class="rs-name">${a.name}</span>
-      <span class="rs-counts">
-        <span class="rs-arr">&#8595;${a.arr}</span>
-        <span class="rs-dep">&#8593;${a.dep}</span>
-      </span>
-    </div>`).join('');
+  if (!scored.length) {
+    box.innerHTML = `<div style="padding:12px;color:#555;font-size:11px;text-align:center">No airports found for "${q}"</div>`;
+    box.style.display = 'block';
+    return;
+  }
+
+  // Sort: score first, then by flight volume
+  scored.sort((a,b) => b.score - a.score || b.total - a.total);
+
+  // Group by city when multiple airports in same city
+  const rows = scored.slice(0, 20).map(a => {
+    const color = a.intl ? '#F5A623' : '#41B6E6';
+    const countHtml = (a.arr||a.dep) ? `<span class="rs-counts"><span class="rs-arr">↓${a.arr}</span><span class="rs-dep">↑${a.dep}</span></span>` : `<span style="font-size:9px;color:#444">${curData?'no data':'load month'}</span>`;
+    return `<div class="rs-item" onclick="selectRoute('${a.code}')">
+      <span class="rs-code" style="color:${color}">${a.code}</span>
+      <span class="rs-name"><span style="color:#ccc">${a.city||a.name}</span><span style="display:block;font-size:10px;color:#555">${a.city?a.name:''}</span></span>
+      ${countHtml}
+    </div>`;
+  }).join('');
+
+  box.innerHTML = rows;
   box.style.display = 'block';
 }
 
