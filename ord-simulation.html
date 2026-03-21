@@ -379,10 +379,11 @@ select#airlineSelect:focus { border-color:var(--blue); }
   font-family:'Montserrat',sans-serif; font-weight:800; font-size:14px;
 }
 #route-card-close {
-  background:none; border:none; color:#555; cursor:pointer;
-  font-size:16px; line-height:1; padding:0 2px;
+  background:none; border:none; color:#888; cursor:pointer;
+  font-size:18px; line-height:1; padding:2px 6px; border-radius:3px;
+  transition:all .15s;
 }
-#route-card-close:hover { color:#fff; }
+#route-card-close:hover { color:#fff; background:#ffffff18; }
 #route-card-body { padding:10px; }
 .rc-row { display:flex; justify-content:space-between; font-size:11px;
   margin-bottom:5px; color:#888; }
@@ -1155,7 +1156,7 @@ async function init() {
     center: [-87.91, 41.98], zoom: 3.2, projection: 'globe',
   });
   popup = new mapboxgl.Popup({ closeButton:false, closeOnClick:false, offset:14 });
-  map.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'top-right');
+  map.addControl(new mapboxgl.NavigationControl({ showCompass:false }), 'bottom-left');
 
   map.on('load', () => {
     map.setFog({ color:'rgb(2,12,27)', 'high-color':'rgb(8,22,50)', 'horizon-blend':0.08, 'space-color':'rgb(1,4,14)', 'star-intensity':0.55 });
@@ -1639,10 +1640,13 @@ function clearRouteSelection() {
   render();
 }
 
-// Close search results when clicking outside
+// Close search results when clicking outside; Escape clears selection
 document.addEventListener('click', e => {
   if (!e.target.closest('#route-search-input') && !e.target.closest('#route-search-results'))
     document.getElementById('route-search-results').style.display = 'none';
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && selectedRoute) clearRouteSelection();
 });
 
 function applyRouteHighlight() {
@@ -2296,32 +2300,39 @@ function toggleInsightsMore() {
 
 // ── Draggable compare panel ───────────────────────────────────────────────────
 (function initDraggable() {
-  document.addEventListener('DOMContentLoaded', () => {
-    const panel = document.getElementById('compare-panel');
-    const hdr   = document.getElementById('compare-panel-hdr');
-    if (!panel || !hdr) return;
-    let dragging = false, ox = 0, oy = 0;
-    hdr.addEventListener('mousedown', e => {
-      dragging = true;
+  const panel = document.getElementById('compare-panel');
+  const hdr   = document.getElementById('compare-panel-hdr');
+  if (!panel || !hdr) return;
+  let dragging = false, ox = 0, oy = 0;
+
+  hdr.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    // On first drag: switch to position:fixed with current screen coords
+    if (panel.style.position !== 'fixed') {
       const r = panel.getBoundingClientRect();
-      // Switch from CSS centering to absolute positioning on first drag
-      if (!panel.style.left) {
-        panel.style.left   = r.left + 'px';
-        panel.style.bottom = '';
-        panel.style.top    = r.top  + 'px';
-        panel.style.transform = 'none';
-      }
-      ox = e.clientX - panel.getBoundingClientRect().left;
-      oy = e.clientY - panel.getBoundingClientRect().top;
-      e.preventDefault();
-    });
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      panel.style.left = (e.clientX - ox) + 'px';
-      panel.style.top  = (e.clientY - oy) + 'px';
-    });
-    document.addEventListener('mouseup', () => { dragging = false; });
+      panel.style.position  = 'fixed';
+      panel.style.left      = r.left + 'px';
+      panel.style.top       = r.top  + 'px';
+      panel.style.bottom    = 'auto';
+      panel.style.transform = 'none';
+      panel.style.margin    = '0';
+    }
+    dragging = true;
+    ox = e.clientX - parseFloat(panel.style.left);
+    oy = e.clientY - parseFloat(panel.style.top);
+    panel.style.transition = 'none';
+    e.preventDefault();
   });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const maxX = window.innerWidth  - panel.offsetWidth;
+    const maxY = window.innerHeight - panel.offsetHeight;
+    panel.style.left = Math.max(0, Math.min(e.clientX - ox, maxX)) + 'px';
+    panel.style.top  = Math.max(0, Math.min(e.clientY - oy, maxY)) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => { dragging = false; });
 })();
 
 function toggleSidebar() {
@@ -2370,7 +2381,13 @@ function syncQuickBtns() {
 function toggleCompareMode() {
   compareMode = !compareMode;
   document.getElementById('btnCompare').classList.toggle('on-type', compareMode);
-  document.getElementById('compare-panel').classList.toggle('hidden', !compareMode);
+  const panel = document.getElementById('compare-panel');
+  panel.classList.toggle('hidden', !compareMode);
+  // Reset position back to center when reopened
+  if (compareMode) {
+    panel.style.position = ''; panel.style.left = '';
+    panel.style.top = ''; panel.style.bottom = ''; panel.style.transform = '';
+  }
 
   if (compareMode) {
     // Reset individual airline filter so both show
