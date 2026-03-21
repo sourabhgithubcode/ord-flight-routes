@@ -337,6 +337,57 @@ select#airlineSelect:focus { border-color:var(--blue); }
 .cmp-val   { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; }
 .cmp-winner { font-size:8px; padding:1px 5px; border-radius:3px; margin-left:4px; }
 
+/* ── Route Search ── */
+#route-search-input {
+  width:100%; background:#111; border:1px solid var(--border-hi);
+  color:var(--text); padding:9px 12px 9px 32px; border-radius:5px;
+  font-size:12px; font-family:'Roboto',sans-serif; outline:none;
+  transition:border-color .15s;
+}
+#route-search-input:focus { border-color:var(--blue); }
+#route-search-input::placeholder { color:#555; }
+.search-icon {
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  color:#555; font-size:13px; pointer-events:none;
+}
+#route-search-results {
+  display:none; position:absolute; left:0; right:0; top:calc(100% + 4px);
+  background:#0f0f0f; border:1px solid var(--border-hi); border-radius:5px;
+  z-index:50; overflow:hidden; max-height:220px; overflow-y:auto;
+}
+.rs-item {
+  padding:9px 12px; cursor:pointer; display:flex; align-items:center;
+  gap:10px; border-bottom:1px solid #1a1a1a; font-size:12px;
+  transition:background .1s;
+}
+.rs-item:last-child { border-bottom:none; }
+.rs-item:hover { background:#1a1a1a; }
+.rs-code { font-family:'Montserrat',sans-serif; font-weight:800; font-size:14px; min-width:38px; }
+.rs-name { color:#888; flex:1; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rs-counts { display:flex; gap:5px; font-size:10px; font-family:'JetBrains Mono',monospace; }
+.rs-arr { color:#64ffda; }
+.rs-dep { color:#f06292; }
+
+#route-card {
+  display:none; margin-top:10px; background:#111;
+  border:1px solid var(--border-hi); border-radius:6px;
+  border-left:3px solid var(--blue); overflow:hidden;
+}
+#route-card-hdr {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px 10px; border-bottom:1px solid #1a1a1a;
+  font-family:'Montserrat',sans-serif; font-weight:800; font-size:14px;
+}
+#route-card-close {
+  background:none; border:none; color:#555; cursor:pointer;
+  font-size:16px; line-height:1; padding:0 2px;
+}
+#route-card-close:hover { color:#fff; }
+#route-card-body { padding:10px; }
+.rc-row { display:flex; justify-content:space-between; font-size:11px;
+  margin-bottom:5px; color:#888; }
+.rc-val { color:#fff; font-family:'JetBrains Mono',monospace; font-weight:600; font-size:12px; }
+
 /* ── Primary airline hero section ── */
 #sidebar-primary {
   padding:16px 16px 18px; border-bottom:2px solid #2a2a2a;
@@ -530,6 +581,29 @@ select#airlineSelect:focus { border-color:var(--blue); }
       <button class="tog btn-compare" id="btnCompare" onclick="toggleCompareMode()" style="width:100%;padding:10px;font-size:12px;margin-bottom:10px">&#9878; Compare UA vs AA</button>
       <div class="ctrl-sub-label" style="margin-top:0">Fare Intelligence</div>
       <button class="tog" id="btnFareIntel" onclick="toggleFareMode()" style="width:100%;font-size:12px;padding:9px">&#36; Fare Intel · Competition &amp; Pricing</button>
+    </div>
+
+    <!-- ── ROUTE SEARCH ── -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#128269; Route Search</div>
+      <div style="position:relative">
+        <span class="search-icon">&#9992;</span>
+        <input id="route-search-input" type="text" placeholder="Airport code or city…" oninput="onRouteSearch(this.value)" autocomplete="off"/>
+        <div id="route-search-results"></div>
+      </div>
+      <div id="route-card">
+        <div id="route-card-hdr">
+          <span id="rc-title" style="color:var(--blue)">ORD ↔ —</span>
+          <button id="route-card-close" onclick="clearRouteSelection()">&#215;</button>
+        </div>
+        <div id="route-card-body">
+          <div class="rc-row"><span>&#8595; Arrivals to ORD</span><span class="rc-val" id="rc-arr">—</span></div>
+          <div class="rc-row"><span>&#8593; Departures from ORD</span><span class="rc-val" id="rc-dep">—</span></div>
+          <div class="rc-row"><span>Top airline</span><span class="rc-val" id="rc-al">—</span></div>
+          <div class="rc-row"><span>Est. avg fare</span><span class="rc-val" id="rc-fare" style="color:#1D9E75">—</span></div>
+          <div class="rc-row"><span>Competition</span><span class="rc-val" id="rc-comp">—</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- ── FILTERS (secondary) ── -->
@@ -877,6 +951,7 @@ let fareMode = false;
 let compareMode = false;
 let playIntro = false;
 let introAnimFrame = null;
+let selectedRoute = null; // airport code currently selected in route search
 
 // ── Fare Intelligence data (BTS DB1B patterns, ORD domestic routes) ───────────
 // Format: [avgFare, comp, airlines[], morningDiscountPct]
@@ -1413,6 +1488,112 @@ const AIRPORT_LAYERS = ['arcs-arr','arcs-dep','airports-circle','airports-label'
 const STATE_LAYERS   = ['state-line-arr','state-line-dep','state-arrow-arr','state-arrow-dep','state-circle','state-label'];
 const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','region-arrow-dep','region-circle','region-label'];
 
+// ── Route Search ──────────────────────────────────────────────────────────────
+function onRouteSearch(q) {
+  const box = document.getElementById('route-search-results');
+  if (!curData || q.trim().length < 1) { box.style.display='none'; return; }
+  const term = q.toUpperCase().trim();
+  const apt = {};
+  [...curData.arrivals, ...curData.departures].forEach(f => {
+    if (!apt[f.code]) apt[f.code] = { code:f.code, name:f.name||f.code, arr:0, dep:0, intl:f.intl };
+  });
+  curData.arrivals.forEach(f   => { if(apt[f.code]) apt[f.code].arr += (f.count||1); });
+  curData.departures.forEach(f => { if(apt[f.code]) apt[f.code].dep += (f.count||1); });
+
+  const results = Object.values(apt)
+    .filter(a => a.code.includes(term) || a.name.toUpperCase().includes(term))
+    .sort((a,b) => (b.arr+b.dep)-(a.arr+a.dep))
+    .slice(0, 8);
+
+  if (!results.length) { box.style.display='none'; return; }
+  box.innerHTML = results.map(a => `
+    <div class="rs-item" onclick="selectRoute('${a.code}')">
+      <span class="rs-code" style="color:${a.intl?'#F5A623':'#41B6E6'}">${a.code}</span>
+      <span class="rs-name">${a.name}</span>
+      <span class="rs-counts">
+        <span class="rs-arr">&#8595;${a.arr}</span>
+        <span class="rs-dep">&#8593;${a.dep}</span>
+      </span>
+    </div>`).join('');
+  box.style.display = 'block';
+}
+
+function selectRoute(code) {
+  selectedRoute = code;
+  document.getElementById('route-search-results').style.display = 'none';
+  document.getElementById('route-search-input').value = code;
+
+  if (!curData) return;
+  const arrFlights = curData.arrivals.filter(f=>f.code===code);
+  const depFlights = curData.departures.filter(f=>f.code===code);
+  const apt = arrFlights[0] || depFlights[0];
+  if (!apt) return;
+
+  const sampleDays = new Set([...arrFlights,...depFlights].map(f=>f.date).filter(Boolean)).size || 1;
+  const arrCount = Math.round(arrFlights.reduce((s,f)=>s+(f.count||1),0) / sampleDays);
+  const depCount = Math.round(depFlights.reduce((s,f)=>s+(f.count||1),0) / sampleDays);
+
+  // Top airline on route
+  const alCounts = {};
+  [...arrFlights,...depFlights].forEach(f=>{ if(f.airline) alCounts[f.airline]=(alCounts[f.airline]||0)+(f.count||1); });
+  const topAl = Object.entries(alCounts).sort((a,b)=>b[1]-a[1])[0];
+
+  // Fare intel
+  const fi = FARE_INTEL[code];
+  const monthIdx = curMonth - 4;
+  const fare  = fi ? Math.round(fi[0] * (FARE_MULT[fi[1]]?.[monthIdx]||1)) : null;
+  const compLabel = fi ? ({c:'Contested',p:'Partial',m:'Monopoly'}[fi[1]]||'—') : '—';
+  const compColor = fi ? ({c:'#1D9E75',p:'#BA7517',m:'#c0392b'}[fi[1]]||'#888') : '#888';
+
+  document.getElementById('rc-title').textContent  = `ORD ↔ ${code}`;
+  document.getElementById('rc-title').title         = apt.name || code;
+  document.getElementById('rc-arr').textContent     = arrCount ? `${arrCount}/day` : '—';
+  document.getElementById('rc-dep').textContent     = depCount ? `${depCount}/day` : '—';
+  document.getElementById('rc-al').textContent      = topAl ? topAl[0].split(' ')[0] : '—';
+  document.getElementById('rc-fare').textContent    = fare ? `$${fare} est.` : apt.intl ? 'Intl route' : '—';
+  document.getElementById('rc-comp').innerHTML      = fi ? `<span style="color:${compColor}">${compLabel}</span>` : '—';
+  document.getElementById('route-card').style.display = '';
+
+  playIntro = true;
+  render();
+}
+
+function clearRouteSelection() {
+  selectedRoute = null;
+  document.getElementById('route-search-input').value = '';
+  document.getElementById('route-search-results').style.display = 'none';
+  document.getElementById('route-card').style.display = 'none';
+  // Restore normal arc opacity
+  if (map.getSource('arcs')) {
+    map.setPaintProperty('arcs-arr', 'line-opacity', 0.55);
+    map.setPaintProperty('arcs-dep', 'line-opacity', 0.55);
+    map.setPaintProperty('arcs-arr', 'line-width', ['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8]);
+    map.setPaintProperty('arcs-dep', 'line-width', ['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8]);
+  }
+  render();
+}
+
+// Close search results when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#route-search-input') && !e.target.closest('#route-search-results'))
+    document.getElementById('route-search-results').style.display = 'none';
+});
+
+function applyRouteHighlight() {
+  if (!selectedRoute) {
+    map.setPaintProperty('arcs-arr', 'line-opacity', 0.55);
+    map.setPaintProperty('arcs-dep', 'line-opacity', 0.55);
+    map.setPaintProperty('arcs-arr', 'line-width', ['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8]);
+    map.setPaintProperty('arcs-dep', 'line-width', ['interpolate',['linear'],['get','count'],1,0.7,5,1.5,20,2.8]);
+  } else {
+    const sel = selectedRoute;
+    map.setPaintProperty('arcs-arr','line-opacity',['case',['==',['get','code'],sel],0.95,0.05]);
+    map.setPaintProperty('arcs-dep','line-opacity',['case',['==',['get','code'],sel],0.95,0.05]);
+    map.setPaintProperty('arcs-arr','line-width',['case',['==',['get','code'],sel],4,0.4]);
+    map.setPaintProperty('arcs-dep','line-width',['case',['==',['get','code'],sel],4,0.4]);
+  }
+}
+
 function animateArcIntro(arcFeatures) {
   if (introAnimFrame) cancelAnimationFrame(introAnimFrame);
   const DURATION = 3000;
@@ -1487,6 +1668,7 @@ function render() {
   } else {
     renderRegion(fArr, fDep);
   }
+  applyRouteHighlight();
   updateStats(fArr, fDep);
   updateFareStats(fArr, fDep);
   updateInsights(fArr, fDep);
