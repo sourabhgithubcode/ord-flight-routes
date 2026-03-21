@@ -360,6 +360,13 @@ select#airlineSelect:focus { border-color:var(--blue); }
 }
 .btn-compare.on-type { background:#a78bfa20 !important; border-color:#a78bfa !important; }
 
+/* ── Sidebar toggle (mobile) ── */
+#sidebar-toggle {
+  display:none; background:none; border:none;
+  color:var(--blue); font-size:22px; cursor:pointer;
+  padding:4px 8px; line-height:1;
+}
+
 /* ── Secondary filter sections ── */
 .ctrl-section.secondary { opacity:0.72; }
 .ctrl-section.secondary .ctrl-section-title {
@@ -379,6 +386,97 @@ select#airlineSelect:focus { border-color:var(--blue); }
 .fl-line  { width:22px; height:3px; border-radius:2px; flex-shrink:0; }
 .fl-dot   { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
 #footer-legend #al-legend { margin-left:auto; }
+
+/* ════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ════════════════════════════════════════ */
+
+/* ── Tablet (≤1024px) ── */
+@media (max-width:1024px) {
+  #sidebar { width:210px; }
+  .hdr-title { font-size:15px; letter-spacing:2px; }
+  .sv { font-size:18px; }
+  #insights { width:270px; }
+  #compare-panel { width:90vw; }
+}
+
+/* ── Small tablet / large phone (≤768px) ── */
+@media (max-width:768px) {
+  /* Header */
+  #sidebar-toggle { display:block; }
+  .hdr-title { font-size:13px; letter-spacing:1.5px; }
+  .hdr-sub { display:none; }
+  #src-badge { display:none; }
+
+  /* Sidebar slides in/out as overlay */
+  #sidebar {
+    position:fixed; top:0; left:0; bottom:0;
+    width:260px; z-index:100;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    box-shadow:4px 0 24px rgba(0,0,0,0.8);
+  }
+  #sidebar.open { transform:translateX(0); }
+
+  /* Sidebar overlay backdrop */
+  #sidebar-backdrop {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,0.6); z-index:99;
+  }
+  #sidebar-backdrop.show { display:block; }
+
+  /* Map takes full width */
+  #main { flex-direction:column; }
+  #map-wrap { flex:1; }
+
+  /* Stats bar — scrollable row */
+  #statsbar {
+    gap:16px; padding:8px 14px;
+    justify-content:flex-start;
+    overflow-x:auto; flex-wrap:nowrap;
+  }
+  #statsbar::-webkit-scrollbar { height:3px; }
+  #statsbar::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:2px; }
+  .sv { font-size:16px; }
+  .sl { font-size:8px; }
+
+  /* Footer legend — scrollable */
+  #footer-legend {
+    gap:12px; padding:6px 14px;
+    overflow-x:auto; flex-wrap:nowrap;
+    font-size:10px;
+  }
+  #footer-legend #al-legend { margin-left:0; }
+
+  /* Insights panel — full width overlay */
+  #insights {
+    left:0; right:0; top:auto; bottom:0;
+    width:100%; height:55vh;
+    border-radius:12px 12px 0 0;
+    transform:translateY(100%);
+  }
+  #insights.hidden { transform:translateY(100%); opacity:1; pointer-events:none; }
+  #insights:not(.hidden) { transform:translateY(0); }
+
+  /* Compare panel — full width */
+  #compare-panel {
+    width:calc(100vw - 20px); left:10px;
+    transform:none; bottom:10px;
+  }
+
+  /* Fare explorer — full screen */
+  #fare-explorer { width:100%; }
+}
+
+/* ── Phone (≤480px) ── */
+@media (max-width:480px) {
+  .hdr-title { font-size:11px; letter-spacing:1px; }
+  #statsbar { gap:12px; }
+  .sv { font-size:14px; }
+  .cmp-airline-name { font-size:13px; }
+  .cmp-stat { font-size:10px; }
+  .primary-title { font-size:9px; }
+}
 </style>
 </head>
 <body>
@@ -388,15 +486,19 @@ select#airlineSelect:focus { border-color:var(--blue); }
 
 <!-- Header: title + badge + insights toggle -->
 <div id="header">
-  <div class="hdr-left">
-    <div class="hdr-title">&#9992;&nbsp; CHICAGO O'HARE &nbsp;|&nbsp; ORD FLIGHT ROUTES</div>
-    <div class="hdr-sub"><span style="color:#4fc3f7;font-weight:700">UA</span> vs <span style="color:#ef5350;font-weight:700">AA</span> · FARE &amp; ROUTE INTELLIGENCE · ORD 2025 · APR–DEC</div>
+  <div class="hdr-left" style="display:flex;align-items:center;gap:10px">
+    <button id="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+    <div>
+      <div class="hdr-title">&#9992;&nbsp; CHICAGO O'HARE &nbsp;|&nbsp; ORD FLIGHT ROUTES</div>
+      <div class="hdr-sub"><span style="color:#4fc3f7;font-weight:700">UA</span> vs <span style="color:#ef5350;font-weight:700">AA</span> · FARE &amp; ROUTE INTELLIGENCE · ORD 2025 · APR–DEC</div>
+    </div>
   </div>
   <div class="hdr-right">
     <span id="src-badge" class="live">LIVE DATA</span>
     <button class="tog on-type" id="btnInsights" onclick="toggleInsights()">&#9998; Insights</button>
   </div>
 </div>
+<div id="sidebar-backdrop" onclick="toggleSidebar()"></div>
 
 <!-- Main: sidebar + map -->
 <div id="main">
@@ -1894,6 +1996,12 @@ function setColorMode(m) {
   document.getElementById('btnColDir').classList.toggle('on-type',m==='direction');
   document.getElementById('btnColAl').classList.toggle('on-al',m==='airline');
   if(curData)render();
+}
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  sb.classList.toggle('open');
+  bd.classList.toggle('show');
 }
 function toggleInsights() {
   insightsOpen=!insightsOpen;
