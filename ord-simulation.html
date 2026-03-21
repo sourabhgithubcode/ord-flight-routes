@@ -678,26 +678,42 @@ select#airlineSelect:focus { border-color:var(--blue); }
       <div style="font-size:10px;color:#444;margin-top:6px">Tap · Tap second for range · Double-tap single</div>
     </div>
 
-    <!-- FILTERS accordion -->
+    <!-- 1. ROUTE TYPE — Domestic / Intl first -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#127760; Route Type</div>
+      <div class="ctrl-row">
+        <button class="tog on-type" id="btnAll"  onclick="setRoute('all')"           style="flex:1">All</button>
+        <button class="tog"         id="btnDom"  onclick="setRoute('domestic')"      style="flex:1">Domestic</button>
+        <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
+      </div>
+      <div class="ctrl-sub-label" style="margin-top:10px">Traffic Direction</div>
+      <div id="row-arr-dep" class="ctrl-row">
+        <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arrivals</button>
+        <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Departures</button>
+      </div>
+    </div>
+
+    <!-- 2. VIEW — Airport / State / Region second -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#128506; View Level</div>
+      <div class="ctrl-row" style="margin-bottom:8px">
+        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
+        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
+        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
+      </div>
+      <div id="row-color-btns" class="ctrl-row">
+        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
+        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
+      </div>
+      <div id="row-color-label" style="display:none"></div>
+    </div>
+
+    <!-- FILTERS accordion — additional filters -->
     <button id="filters-toggle" onclick="toggleFilters()">
-      <span>&#9881; Filters</span>
+      <span>&#9881; More Filters</span>
       <span id="filters-arrow">&#9660;</span>
     </button>
     <div id="filters-accordion">
-
-      <div class="ctrl-section secondary">
-        <div class="ctrl-section-title">Traffic &amp; Route</div>
-        <div id="row-arr-dep" class="ctrl-row">
-          <button class="tog on-arr" id="btnArr" onclick="toggleType('arr')" style="flex:1">&#8595; Arr</button>
-          <button class="tog on-dep" id="btnDep" onclick="toggleType('dep')" style="flex:1">&#8593; Dep</button>
-        </div>
-        <div class="ctrl-sub-label">Route Type</div>
-        <div class="ctrl-row">
-          <button class="tog on-type" id="btnAll"  onclick="setRoute('all')" style="flex:1">All</button>
-          <button class="tog"         id="btnDom"  onclick="setRoute('domestic')" style="flex:1">Domestic</button>
-          <button class="tog"         id="btnIntl" onclick="setRoute('international')" style="flex:1">Intl</button>
-        </div>
-      </div>
 
       <div class="ctrl-section secondary">
         <div class="ctrl-section-title">Airline</div>
@@ -715,29 +731,17 @@ select#airlineSelect:focus { border-color:var(--blue); }
         </div>
       </div>
 
-    </div><!-- /filters-accordion -->
+      <div class="ctrl-section secondary">
+        <div class="ctrl-section-title">Route Density Heatmap</div>
+        <div class="ctrl-row">
+          <button class="tog on-type" id="btnHmOff"  onclick="setHeatmap('off')"           style="flex:1;font-size:11px">Off</button>
+          <button class="tog"         id="btnHmAll"  onclick="setHeatmap('all')"            style="flex:1;font-size:11px">All</button>
+          <button class="tog"         id="btnHmDom"  onclick="setHeatmap('domestic')"       style="flex:1;font-size:11px">Dom</button>
+          <button class="tog"         id="btnHmIntl" onclick="setHeatmap('international')"  style="flex:1;font-size:11px">Intl</button>
+        </div>
+      </div>
 
-    <!-- VIEW + HEATMAP — always visible outside accordion -->
-    <div class="ctrl-section">
-      <div class="ctrl-section-title">&#128506; View</div>
-      <div class="ctrl-row" style="margin-bottom:8px">
-        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
-        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
-        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
-      </div>
-      <div id="row-color-btns" class="ctrl-row">
-        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
-        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
-      </div>
-      <div id="row-color-label" style="display:none"></div>
-      <div class="ctrl-sub-label" style="margin-top:14px">Route Density Heatmap</div>
-      <div class="ctrl-row">
-        <button class="tog on-type" id="btnHmOff"  onclick="setHeatmap('off')"           style="flex:1;font-size:11px">Off</button>
-        <button class="tog"         id="btnHmAll"  onclick="setHeatmap('all')"            style="flex:1;font-size:11px">All</button>
-        <button class="tog"         id="btnHmDom"  onclick="setHeatmap('domestic')"       style="flex:1;font-size:11px">Dom</button>
-        <button class="tog"         id="btnHmIntl" onclick="setHeatmap('international')"  style="flex:1;font-size:11px">Intl</button>
-      </div>
-    </div>
+    </div><!-- /filters-accordion -->
 
   </div><!-- /sidebar -->
 
