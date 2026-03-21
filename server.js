@@ -530,4 +530,25 @@ app.listen(PORT, () => {
   console.log(`   AeroDataBox : ${AERODATABOX_KEY ? '✓' : '✗ missing'}`);
   console.log(`   Mapbox      : ${MAPBOX_TOKEN    ? '✓' : '✗ missing'}`);
   console.log(`   BTS API     : data.transportation.gov/resource/xgub-n9bw\n`);
+  warmCache();
 });
+
+// Pre-fetch all 9 months in the background so first visitors get instant data
+async function warmCache() {
+  const months = [4,5,6,7,8,9,10,11,12];
+  const uncached = months.filter(m => !cache.has(m));
+  if (uncached.length === 0) { console.log('  Cache warm — all months ready'); return; }
+  console.log(`  Warming cache for months: ${uncached.join(', ')} (background)`);
+  for (const m of uncached) {
+    try {
+      const base = `http://localhost:${PORT}`;
+      const r = await axios.get(`${base}/api/flights/${m}`, { timeout: 30000 });
+      if (r.data && !r.data.error) console.log(`  ✓ Cached month ${m}`);
+    } catch (e) {
+      console.log(`  ✗ Could not warm month ${m}: ${e.message}`);
+    }
+    // Small delay between requests to avoid hammering the API
+    await new Promise(res => setTimeout(res, 2000));
+  }
+  console.log('  Cache warm complete');
+}
