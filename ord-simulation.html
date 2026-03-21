@@ -65,12 +65,12 @@ body {
 .ctrl-section { padding:16px 16px 14px; border-bottom:1px solid var(--border); }
 .ctrl-section-title {
   font-family:'Montserrat', sans-serif;
-  font-size:11px; color:var(--blue); letter-spacing:2.5px;
+  font-size:13px; color:var(--blue); letter-spacing:2px;
   text-transform:uppercase; font-weight:700; margin-bottom:13px;
   border-left:3px solid var(--blue); padding-left:8px;
 }
 .ctrl-sub-label {
-  font-size:10px; color:var(--text-muted); letter-spacing:1.5px;
+  font-size:11px; color:var(--text-muted); letter-spacing:1.5px;
   text-transform:uppercase; margin-bottom:6px; margin-top:12px;
   font-family:'Roboto',sans-serif; font-weight:500;
 }
@@ -162,7 +162,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
 .ins-section { display:flex; flex-direction:column; gap:7px; }
 .ins-label {
   font-family:'Montserrat',sans-serif;
-  font-size:9px; color:var(--text-muted); letter-spacing:2px;
+  font-size:11px; color:var(--text-muted); letter-spacing:2px;
   text-transform:uppercase; padding-bottom:6px;
   border-bottom:1px solid var(--border); font-weight:700;
 }
@@ -194,7 +194,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
 }
 .sl {
   font-family:'Montserrat', sans-serif;
-  font-size:9px; color:var(--text-muted); letter-spacing:2px;
+  font-size:10px; color:var(--text-muted); letter-spacing:2px;
   margin-top:3px; text-transform:uppercase; font-weight:700;
 }
 #al-legend { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-left:auto; }
@@ -666,25 +666,24 @@ select#airlineSelect:focus { border-color:var(--blue); }
       </div>
 
       <div class="ins-section">
-        <div class="ins-label">Data Confidence</div>
+        <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Data Confidence</span>
+          <span id="conf-pct" style="font-size:13px;font-weight:bold;color:#64ffda">—</span>
+        </div>
         <div id="ins-confidence">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div id="conf-bar-wrap" style="flex:1;height:8px;background:#0d1f35;border-radius:4px;overflow:hidden">
-              <div id="conf-bar" style="height:100%;border-radius:4px;transition:width .5s ease;width:0%"></div>
-            </div>
-            <span id="conf-pct" style="font-size:15px;font-weight:bold;color:#64ffda;min-width:40px;text-align:right">—</span>
+          <div id="conf-bar-wrap" style="height:6px;background:#0d1f35;border-radius:4px;overflow:hidden;margin-bottom:5px">
+            <div id="conf-bar" style="height:100%;border-radius:4px;transition:width .5s ease;width:0%"></div>
           </div>
-          <div id="conf-coverage" style="font-size:11px;color:#8892b0;line-height:1.6"></div>
-          <div id="conf-daily" style="margin-top:6px"></div>
+          <div id="conf-coverage" style="font-size:11px;color:#8892b0"></div>
         </div>
       </div>
 
       <div class="ins-section" id="sec-bts">
         <div class="ins-label" style="display:flex;justify-content:space-between;align-items:center">
-          <span>BTS Cross-Validation</span>
+          <span>BTS Validation</span>
           <span id="bts-badge" style="font-size:10px;padding:2px 7px;border-radius:3px;background:#1d3557;color:#8892b0">loading</span>
         </div>
-        <div id="ins-bts" style="font-size:11px;color:#8892b0;line-height:1.7">Fetching official BTS data…</div>
+        <div id="ins-bts" style="font-size:11px;color:#8892b0;line-height:1.5"></div>
       </div>
 
     </div>
@@ -1344,7 +1343,7 @@ async function loadBTS(year, m) {
     const d = await r.json();
     if (!d.available) {
       badge.textContent = 'unavailable'; badge.style.color = '#f06292';
-      box.innerHTML = `<span style="color:#f0629288">BTS data not yet published for ${MONTHS[m]} 2025.</span><br>BTS typically lags 3–6 months. Try Apr–Sep.`;
+      box.innerHTML = `<span style="color:#f0629288">Not yet published for ${MONTHS[m]} 2025</span> · BTS lags 3–6 months`;
       return;
     }
     badge.textContent = 'live'; badge.style.background = '#64ffda18'; badge.style.color = '#64ffda';
@@ -1357,31 +1356,12 @@ async function loadBTS(year, m) {
 
 function renderBTS(d, m) {
   const box = document.getElementById('ins-bts');
-  // Compare BTS intl passenger routes with our intl routes
   const ourIntlRoutes = curData ? new Set([...curData.arrivals,...curData.departures].filter(f=>f.intl).map(f=>f.code)) : new Set();
   const btsRoutes     = new Set(d.topAirports.map(([code])=>code));
   const overlap       = [...ourIntlRoutes].filter(c=>btsRoutes.has(c)).length;
   const overlapPct    = ourIntlRoutes.size > 0 ? Math.round(overlap/ourIntlRoutes.size*100) : 0;
-
-  const topRows = d.topAirports.slice(0,5).map(([code,pax])=>
-    `<div style="display:flex;justify-content:space-between;margin-top:2px">
-      <span style="color:${ourIntlRoutes.has(code)?'#ffb74d':'#8892b0'}">${code}</span>
-      <span style="color:#e6f1ff">${Number(pax).toLocaleString()} pax</span>
-    </div>`).join('');
-
-  box.innerHTML = `
-    <div style="color:#ccd6f6;margin-bottom:5px">
-      <strong style="color:#ffb74d">${Number(d.totalPassengers).toLocaleString()}</strong> international passengers via ORD in ${MONTHS[m]} 2025
-    </div>
-    <div style="margin-bottom:6px">${d.routeCount} intl routes reported &bull; ${d.scheduledPax.toLocaleString()} scheduled</div>
-    <div style="margin-bottom:4px;padding:4px 6px;background:#0d1f35;border-radius:4px;color:${overlapPct>70?'#64ffda':'#ffb74d'}">
-      Route overlap with our data: <strong>${overlapPct}%</strong> (${overlap}/${ourIntlRoutes.size} routes matched)
-    </div>
-    <div style="font-size:9px;color:#8892b0;margin-bottom:4px;letter-spacing:1px">TOP INTL ROUTES (BTS)</div>
-    ${topRows}
-    <div style="margin-top:6px;font-size:8px;color:#1d3557aa;border-top:1px solid #1d3557;padding-top:4px">
-      Source: BTS International Report &bull; data.transportation.gov
-    </div>`;
+  const top3 = d.topAirports.slice(0,3).map(([code])=>`<span style="color:#ffb74d">${code}</span>`).join(' · ');
+  box.innerHTML = `<strong style="color:#ffb74d">${Number(d.totalPassengers).toLocaleString()}</strong> intl pax · ${d.routeCount} routes · <span style="color:${overlapPct>70?'#64ffda':'#ffb74d'}">${overlapPct}% match</span> · Top: ${top3}`;
 }
 
 async function preloadAll() {
@@ -1696,35 +1676,19 @@ function updateInsights(fArr, fDep) {
   const monthsInRange = curMonthEnd - curMonth + 1;
   const dayNote = perDay ? ` <em style="color:#AAAAAA;font-size:0.85em">(avg/day · ${sampleDays} sample days${monthsInRange > 1 ? ` · ${monthsInRange} months` : ''})</em>` : '';
 
-  // ── Narrative ──
-  let lines = [];
+  // ── Narrative — 1 punchy line ──
+  let headline = '';
   if (curAirline !== 'all') {
-    const alIntl = sumCount(all.filter(f=>f.intl));
-    const alDom  = total - alIntl;
-    const dispTotal = Math.round(total/div);
-    lines.push(`<strong>${curAirline}</strong> averaged <strong>${dispTotal} flights/day</strong> through ORD in ${periodLabel()}.${dayNote}`);
-    lines.push(`${Math.round(alDom/div)} domestic and <em>${Math.round(alIntl/div)} international</em> — ${Math.round(alIntl/total*100)}% of their traffic is cross-border.`);
-    if (topRoute) lines.push(`Their busiest connection is <strong>${topRoute[0]}</strong> with ~${Math.round(topRoute[1]/div)} flights/day.`);
+    const top = topRoute ? ` Top route: <strong>${topRoute[0]}</strong>.` : '';
+    headline = `<strong>${curAirline}</strong> — <strong>${Math.round(total/div)} flights/day</strong> · ${Math.round(sumCount(fArr)/div)} arr / ${Math.round(sumCount(fDep)/div)} dep · ${Math.round(sumCount(all.filter(f=>f.intl))/div)} intl.${top}`;
   } else if (routeType === 'international') {
-    const regions = {};
-    intlFlights.forEach(f=>{ const r=regionOf(f.code); regions[r]=(regions[r]||0)+1; });
-    const topReg = Object.entries(regions).sort((a,b)=>b[1]-a[1])[0];
-    lines.push(`ORD connected to <strong>${intlDests} international destinations</strong> in ${periodLabel()}.`);
-    if (topReg) lines.push(`<em>${{EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[topReg[0]]||topReg[0]}</em> leads with ${Math.round(topReg[1]/div)} flights/day, followed by ${Object.entries(regions).sort((a,b)=>b[1]-a[1]).slice(1).map(([r,v])=>`${({EU:'Europe',AS:'Asia',CA:'Canada',LA:'Latin America'}[r]||r)} (${Math.round(v/div)}/day)`).slice(0,2).join(', ')}.`);
-    if (dom) lines.push(`${dom[0]} runs the most international operations — <strong>${domPct}%</strong> of intl traffic.`);
+    headline = `<strong>${intlDests} intl destinations</strong> served from ORD in ${periodLabel()}. ${dom ? `<strong>${dom[0]}</strong> leads at ${domPct}%.` : ''}`;
   } else if (routeType === 'domestic') {
-    lines.push(`<strong>~${Math.round(total/div)} domestic flights/day</strong> through ORD in ${periodLabel()} — ${Math.round(sumCount(fArr)/div)} arriving, ${Math.round(sumCount(fDep)/div)} departing.${dayNote}`);
-    if (dom) lines.push(`<strong>${dom[0]}</strong> dominates domestic operations at <em>${domPct}%</em> market share (~${Math.round(dom[1]/div)}/day).`);
-    if (topRoute) lines.push(`${topRoute[0]} is the most connected domestic city with ~${Math.round(topRoute[1]/div)} movements/day.`);
+    headline = `<strong>~${Math.round(total/div)} domestic flights/day</strong> · ${dom ? `<strong>${dom[0]}</strong> ${domPct}% share` : ''} · Top route: <strong>${topRoute?.[0]||'—'}</strong>.`;
   } else {
-    lines.push(`ORD averaged <strong>${Math.round(sumCount(fArr)/div)} arrivals</strong> and <strong>${Math.round(sumCount(fDep)/div)} departures per day</strong> in ${periodLabel()}.${dayNote}`);
-    if (intlPct > 0) lines.push(`International routes make up <em>${intlPct}%</em> of traffic across ${intlDests} destinations.`);
-    if (dom) lines.push(`<strong>${dom[0]}</strong> leads with <em>${domPct}%</em> share — ~${Math.round(dom[1]/div)}/day.`);
+    headline = `ORD <strong>${Math.round(sumCount(fArr)/div)} arr</strong> / <strong>${Math.round(sumCount(fDep)/div)} dep</strong> per day · ${intlPct}% intl · ${dom ? `<strong>${dom[0]}</strong> ${domPct}%` : ''}.`;
   }
-  if (!showArr && showDep) lines.push(`<em>Departures only mode</em> — ~${Math.round(sumCount(fDep)/div)} outbound flights/day.`);
-  if (showArr && !showDep) lines.push(`<em>Arrivals only mode</em> — ~${Math.round(sumCount(fArr)/div)} inbound flights/day.`);
-
-  document.getElementById('ins-narrative').innerHTML = lines.join(' ');
+  document.getElementById('ins-narrative').innerHTML = headline;
 
   // ── Balance bar ──
   const arrPct = total ? Math.round(sumCount(fArr)/total*100) : 50;
@@ -1776,26 +1740,14 @@ function updateConfidence() {
   const conf  = curData.confidence || 70;
   const color = conf >= 85 ? '#64ffda' : conf >= 70 ? '#ffb74d' : '#f06292';
   const label = conf >= 85 ? 'High' : conf >= 70 ? 'Medium' : 'Low';
+  const days  = (curData.sampleDays||[curData.date]).join(', ');
 
-  document.getElementById('conf-bar').style.width       = conf + '%';
-  document.getElementById('conf-bar').style.background  = color;
-  document.getElementById('conf-pct').textContent       = conf + '%';
-  document.getElementById('conf-pct').style.color       = color;
-  document.getElementById('conf-coverage').innerHTML    =
-    `<strong style="color:${color}">${label} confidence</strong><br>` +
-    `${curData.coverage || '12h, 1 day'}<br>` +
-    `Sample days: ${(curData.sampleDays||[curData.date]).join(', ')}`;
-
-  // Daily breakdown mini-table
-  const dt = curData.dailyTotals || {};
-  const rows = Object.entries(dt).map(([date, v]) => {
-    const total = v.arr + v.dep;
-    return `<div style="display:flex;justify-content:space-between;font-size:9px;margin-top:3px">
-      <span style="color:#8892b0">${date.slice(5)}</span>
-      <span><span style="color:#64ffda88">${v.arr}↓</span> <span style="color:#f0629288">${v.dep}↑</span> <strong style="color:#ccd6f6">${total}</strong></span>
-    </div>`;
-  }).join('');
-  document.getElementById('conf-daily').innerHTML = rows;
+  document.getElementById('conf-bar').style.width      = conf + '%';
+  document.getElementById('conf-bar').style.background = color;
+  document.getElementById('conf-pct').textContent      = conf + '%';
+  document.getElementById('conf-pct').style.color      = color;
+  document.getElementById('conf-coverage').innerHTML   =
+    `<span style="color:${color}">${label}</span> · ${curData.coverage||'3 days'} · sampled ${days}`;
 }
 
 function drawTrend() {
