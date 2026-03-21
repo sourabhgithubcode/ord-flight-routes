@@ -715,28 +715,29 @@ select#airlineSelect:focus { border-color:var(--blue); }
         </div>
       </div>
 
-      <div class="ctrl-section secondary">
-        <div class="ctrl-section-title">View</div>
-        <div class="ctrl-row" style="margin-bottom:8px">
-          <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
-          <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
-          <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
-        </div>
-        <div id="row-color-btns" class="ctrl-row">
-          <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
-          <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
-        </div>
-        <div id="row-color-label" style="display:none"></div>
-        <div class="ctrl-sub-label" style="margin-top:14px">Route Density Heatmap</div>
-        <div class="ctrl-row">
-          <button class="tog on-type" id="btnHmOff"  onclick="setHeatmap('off')"           style="flex:1;font-size:11px">Off</button>
-          <button class="tog"         id="btnHmAll"  onclick="setHeatmap('all')"            style="flex:1;font-size:11px">All</button>
-          <button class="tog"         id="btnHmDom"  onclick="setHeatmap('domestic')"       style="flex:1;font-size:11px">Dom</button>
-          <button class="tog"         id="btnHmIntl" onclick="setHeatmap('international')"  style="flex:1;font-size:11px">Intl</button>
-        </div>
-      </div>
-
     </div><!-- /filters-accordion -->
+
+    <!-- VIEW + HEATMAP — always visible outside accordion -->
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">&#128506; View</div>
+      <div class="ctrl-row" style="margin-bottom:8px">
+        <button class="tog on-view" id="btnViewApt"    onclick="setViewMode('airport')" style="flex:1">Airport</button>
+        <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
+        <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
+      </div>
+      <div id="row-color-btns" class="ctrl-row">
+        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
+        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
+      </div>
+      <div id="row-color-label" style="display:none"></div>
+      <div class="ctrl-sub-label" style="margin-top:14px">Route Density Heatmap</div>
+      <div class="ctrl-row">
+        <button class="tog on-type" id="btnHmOff"  onclick="setHeatmap('off')"           style="flex:1;font-size:11px">Off</button>
+        <button class="tog"         id="btnHmAll"  onclick="setHeatmap('all')"            style="flex:1;font-size:11px">All</button>
+        <button class="tog"         id="btnHmDom"  onclick="setHeatmap('domestic')"       style="flex:1;font-size:11px">Dom</button>
+        <button class="tog"         id="btnHmIntl" onclick="setHeatmap('international')"  style="flex:1;font-size:11px">Intl</button>
+      </div>
+    </div>
 
   </div><!-- /sidebar -->
 
@@ -786,7 +787,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
       </div>
 
       <div class="ins-section">
-        <div class="ins-label">What you're looking at</div>
+        <div class="ins-label">Summary</div>
         <div id="ins-narrative">Select a month to load data.</div>
       </div>
 
@@ -2064,19 +2065,17 @@ function updateInsights(fArr, fDep) {
   const perDay = sampleDays > 1;
   const div = perDay ? sampleDays : 1;
   const monthsInRange = curMonthEnd - curMonth + 1;
-  const dayNote = perDay ? ` <em style="color:#AAAAAA;font-size:0.85em">(avg/day · ${sampleDays} sample days${monthsInRange > 1 ? ` · ${monthsInRange} months` : ''})</em>` : '';
-
   // ── Narrative — 1 punchy line ──
   let headline = '';
   if (curAirline !== 'all') {
-    const top = topRoute ? ` Top route: <strong>${topRoute[0]}</strong>.` : '';
-    headline = `<strong>${curAirline}</strong> — <strong>${Math.round(total/div)} flights/day</strong> · ${Math.round(sumCount(fArr)/div)} arr / ${Math.round(sumCount(fDep)/div)} dep · ${Math.round(sumCount(all.filter(f=>f.intl))/div)} intl.${top}`;
+    const top = topRoute ? ` · <strong>${topRoute[0]}</strong> top route` : '';
+    headline = `<strong>${curAirline}</strong> · <strong>${Math.round(total/div)}/day</strong> · ${Math.round(sumCount(fArr)/div)} arr / ${Math.round(sumCount(fDep)/div)} dep${top}`;
   } else if (routeType === 'international') {
-    headline = `<strong>${intlDests} intl destinations</strong> served from ORD in ${periodLabel()}. ${dom ? `<strong>${dom[0]}</strong> leads at ${domPct}%.` : ''}`;
+    headline = `<strong>${intlDests} intl destinations</strong> · ${dom ? `<strong>${dom[0]}</strong> leads ${domPct}%` : ''}`;
   } else if (routeType === 'domestic') {
-    headline = `<strong>~${Math.round(total/div)} domestic flights/day</strong> · ${dom ? `<strong>${dom[0]}</strong> ${domPct}% share` : ''} · Top route: <strong>${topRoute?.[0]||'—'}</strong>.`;
+    headline = `<strong>~${Math.round(total/div)} dom flights/day</strong> · ${dom ? `<strong>${dom[0]}</strong> ${domPct}%` : ''} · top: <strong>${topRoute?.[0]||'—'}</strong>`;
   } else {
-    headline = `ORD <strong>${Math.round(sumCount(fArr)/div)} arr</strong> / <strong>${Math.round(sumCount(fDep)/div)} dep</strong> per day · ${intlPct}% intl · ${dom ? `<strong>${dom[0]}</strong> ${domPct}%` : ''}.`;
+    headline = `<strong>${Math.round(sumCount(fArr)/div)} arr</strong> / <strong>${Math.round(sumCount(fDep)/div)} dep</strong> per day · ${intlPct}% intl · ${dom ? `<strong>${dom[0]}</strong> ${domPct}%` : ''}`;
   }
   document.getElementById('ins-narrative').innerHTML = headline;
 
@@ -2666,10 +2665,7 @@ function updateFareStory(fArr, fDep) {
         <span style="font-size:18px;font-weight:800;font-family:Montserrat,sans-serif;color:#c0392b"> $${fareAvg(priciest)}</span>
         <span style="color:#AAAAAA;font-size:10px"> · ${fareCompText(priciest)}</span>
       </div>
-      ${gap > 0 ? `<div style="margin-top:8px;font-size:11px;color:#ccc;border-top:1px solid #222;padding-top:7px">
-        Competition saves Chicago travelers an average of <strong style="color:#1D9E75">$${gap}/trip</strong><br>
-        on routes where airlines fight for your seat.
-      </div>` : ''}
+      ${gap > 0 ? `<div style="margin-top:6px;font-size:11px;color:#888;border-top:1px solid #222;padding-top:6px">Competition saves travelers <strong style="color:#1D9E75">$${gap}/trip</strong> avg on contested routes.</div>` : ''}
     </div>
     <div style="font-size:10px;color:#AAAAAA;letter-spacing:1px;margin-bottom:4px">ROUTES BY COMPETITION</div>
     <div class="fare-comp-bar-wrap" title="${cFares.length} contested · ${pFares.length} partial · ${mFares.length} monopoly">
@@ -2677,15 +2673,14 @@ function updateFareStory(fArr, fDep) {
       ${pPct>0?`<div style="flex:${pPct};background:#BA7517;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">${pPct}%</div>`:''}
       ${mPct>0?`<div style="flex:${mPct};background:#c0392b;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">${mPct}%</div>`:''}
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#666;margin-bottom:8px">
       <span>Contested</span><span>Partial</span><span>Monopoly</span>
     </div>
     ${showWarning ? `<div class="fare-warning-card">
-      <strong style="color:#BA7517">⚠ If American exits ${Math.min(20,cFares.length)} overlap routes at ORD</strong> — routes United CEO Scott Kirby predicted AA cannot sustain — fares on those routes are estimated to rise 40–60% based on historical monopoly pricing patterns. That is roughly <strong>$340M in additional annual costs</strong> to Chicago-area travelers.<br><br>
-      The dual-hub competition at O'Hare is the reason your New York flight costs less than your Peoria flight.
-      <div style="margin-top:8px"><a href="javascript:void(0)" onclick="toggleLearnWhy()" style="color:#BA7517;font-size:10px;text-decoration:none">▶ Learn why →</a></div>
+      <strong style="color:#BA7517">⚠ AA exit risk on ${Math.min(20,cFares.length)} overlap routes</strong> — estimated 40–60% fare rise · <strong>~$340M</strong> added annual cost to Chicago travelers.
+      <div style="margin-top:6px"><a href="javascript:void(0)" onclick="toggleLearnWhy()" style="color:#BA7517;font-size:10px;text-decoration:none">▶ Why? →</a></div>
       <div id="learn-why-expand">
-        Gate allocation at O'Hare is governed by a slot-control formula that awards gates partly based on historical usage. American holds gates at O'Hare because abandoning them would transfer gate rights to United permanently. Even on routes where American loses money per flight, the strategic cost of yielding O'Hare presence to United is higher — it would remove American from one of the only two airports in the world where both carriers maintain full hub operations. This gate-hostage dynamic is the direct mechanism that keeps fares low on every contested ORD route.
+        AA holds O'Hare gates strategically — not just for profit. Vacating gates transfers rights to United permanently. This gate-hostage dynamic keeps fares low on every contested ORD route.
       </div>
     </div>` : ''}
   `;
