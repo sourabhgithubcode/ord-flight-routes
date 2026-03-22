@@ -2245,18 +2245,16 @@ function buildFareColorExpr() {
 function applyColorMode() {
   if (!map || !map.isStyleLoaded()) return;
   if (fareMode) {
-    const fareExpr = buildFareColorExpr();
-    map.setPaintProperty('arcs-arr', 'line-color', fareExpr);
-    map.setPaintProperty('arcs-dep', 'line-color', fareExpr);
-    map.setPaintProperty('arcs-arr', 'line-opacity', 0.85);
-    map.setPaintProperty('arcs-dep', 'line-opacity', 0.85);
+    // Delegate entirely to filterByComp so competition filter is always respected
+    filterByComp(curCompFilter);
     return;
   }
-  const isAl = colorMode === 'airline';
+  // Use airline color when a specific airline is selected OR airline color mode is active
+  const isAl = colorMode === 'airline' || curAirline !== 'all';
   map.setPaintProperty('arcs-arr', 'line-color', isAl ? ['get','alColor'] : '#41B6E6');
   map.setPaintProperty('arcs-dep', 'line-color', isAl ? ['get','alColor'] : '#E4002B');
-  map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.75 : 0.55);
-  map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.75 : 0.55);
+  map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.80 : 0.55);
+  map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.80 : 0.55);
 }
 
 function periodLabel() {
@@ -2819,19 +2817,15 @@ function toggleFareMode() {
   const flFare = document.getElementById('fl-fare-items');
   if (flFare) flFare.style.display = fareMode ? 'flex' : 'none';
 
-  // Controls that are meaningless in fare mode
+  // Hide color/view controls that are overridden in fare mode (but keep arr/dep always visible)
   const hide = fareMode ? 'none' : '';
-  document.getElementById('row-arr-dep').style.display    = hide; // direction irrelevant for fares
-  document.getElementById('row-color-label').style.display = hide; // color overridden by competition
+  document.getElementById('row-color-label').style.display = hide;
   document.getElementById('row-color-btns').style.display  = hide;
-  document.getElementById('btnViewState').style.display   = hide; // fare is per-airport, not per-state
+  document.getElementById('btnViewState').style.display   = hide;
   document.getElementById('btnViewRegion').style.display  = hide;
 
-  // Force airport view when entering fare mode (state/region lose per-route fare detail)
+  // Force airport view when entering fare mode
   if (fareMode && viewMode !== 'airport') setViewMode('airport');
-
-  // Force both directions visible so all routes show
-  if (fareMode) { showArr = true; showDep = true; }
 
   // Competition filter: reset when entering or leaving fare mode
   if (fareMode) {
@@ -3026,15 +3020,22 @@ function filterByComp(type) {
   });
   if (!map || !map.getLayer('arcs-arr')) return;
   if (type === 'all') {
-    // Show all routes with fare colors
+    // Show all routes, each colored by its competition level
+    const fareExpr = buildFareColorExpr();
+    map.setPaintProperty('arcs-arr', 'line-color', fareExpr);
+    map.setPaintProperty('arcs-dep', 'line-color', fareExpr);
     map.setPaintProperty('arcs-arr', 'line-opacity', 0.85);
     map.setPaintProperty('arcs-dep', 'line-opacity', 0.85);
   } else {
-    // Dim routes that don't match, brighten matching ones
+    // Color ALL matching routes in the competition color; dim non-matching to grey
     const matchCodes = Object.entries(FARE_INTEL)
       .filter(([, d]) => d[1] === type)
       .map(([code]) => code);
+    const solidColor = FARE_COLOR[type];
+    const colorExpr   = ['case', ['in', ['get','code'], ['literal', matchCodes]], solidColor, '#333333'];
     const opacityExpr = ['case', ['in', ['get','code'], ['literal', matchCodes]], 0.92, 0.08];
+    map.setPaintProperty('arcs-arr', 'line-color', colorExpr);
+    map.setPaintProperty('arcs-dep', 'line-color', colorExpr);
     map.setPaintProperty('arcs-arr', 'line-opacity', opacityExpr);
     map.setPaintProperty('arcs-dep', 'line-opacity', opacityExpr);
   }
