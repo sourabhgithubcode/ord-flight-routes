@@ -760,11 +760,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
         <button class="tog"         id="btnViewState"  onclick="setViewMode('state')"   style="flex:1">State</button>
         <button class="tog"         id="btnViewRegion" onclick="setViewMode('region')"  style="flex:1">Region</button>
       </div>
-      <div id="row-color-btns" class="ctrl-row">
-        <button class="tog on-type" id="btnColDir" onclick="setColorMode('direction')" style="flex:1">By Direction</button>
-        <button class="tog"         id="btnColAl"  onclick="setColorMode('airline')"   style="flex:1">By Airline</button>
-      </div>
-      <div id="row-color-label" style="display:none"></div>
+      <!-- Color mode is automatic: direction colors when all airlines, airline color when one is selected -->
     </div>
 
     <!-- 4. UA vs AA — primary focus -->
@@ -1183,6 +1179,17 @@ const AIRLINE_COLORS = {
   'British Airways':'#1a237e','Air France':'#0d47a1','KLM':'#0277bd',
   'Emirates':'#d32f2f','Korean Air':'#1e88e5',
 };
+// Favicon domains for airline logos shown in bottom legend
+const AIRLINE_DOMAINS = {
+  'United':'united.com','American':'aa.com','Delta Air Lines':'delta.com',
+  'Southwest':'southwest.com','Air Canada':'aircanada.com','Envoy Air':'envoyair.com',
+  'SkyWest Airlines':'skywest.com','Spirit':'spirit.com','Frontier':'flyfrontier.com',
+  'Alaska':'alaskaair.com','Contour Aviation':'contouraviation.com',
+  'Japan Airlines':'jal.com','ANA':'ana.co.jp','Cathay Pacific':'cathaypacific.com',
+  'Lufthansa':'lufthansa.com','British Airways':'britishairways.com',
+  'Air France':'airfrance.com','KLM':'klm.com','Emirates':'emirates.com',
+  'Korean Air':'koreanair.com',
+};
 const AL_DEFAULT = '#8892b0';
 const REGION = { EU:['LHR','CDG','FRA','AMS','ZRH','MAD','BCN','FCO','VIE','MUC','STR','CPH','DUB','BRU','KEF','BEG'], AS:['NRT','HND','HKG','ICN','NGO','KIX','PVG','AUH','DOH','DXB','IST'], CA:['YYZ','YUL','YVR','YOW','YQB','YYC','YWG'], LA:['MEX','CUN','GDL','PTY','SJO','GUA','PVR','SJD','PUJ','CZM','MBJ','NAS','UVF','SXM','STT'] };
 
@@ -1310,7 +1317,7 @@ function regionOf(code) {
 // ── State ────────────────────────────────────────────────────────────────────
 let map, popup;
 let showArr = true, showDep = true;
-let routeType = 'all', colorMode = 'direction', curAirline = 'all';
+let routeType = 'all', curAirline = 'all';
 let curMonth = 9, curMonthEnd = 9;   // Oct 2025 (0-based index) — instant load from disk cache
 const curYear = 2025;                 // used only for BTS cross-validation
 // Map 0-based month index → calendar year: 0–2 = 2026 (Jan–Mar), 9–11 = 2025 (Oct–Dec)
@@ -1563,6 +1570,13 @@ async function init() {
       'text-field':['get','code'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
       'text-size':9, 'text-offset':[0,1.5], 'text-anchor':'top' },
       paint:{ 'text-color':'#FFFFFF', 'text-halo-color':'#000000', 'text-halo-width':1.5 } });
+
+    // Airline logo icons on airport dots (shown when airline is selected or compare mode)
+    map.addLayer({ id:'airports-al-icon', type:'symbol', source:'airports',
+      layout:{ 'icon-image':['get','alIcon'], 'icon-size':0.5,
+        'icon-anchor':'bottom-right', 'icon-offset':[8,-4],
+        'icon-allow-overlap':false, 'icon-optional':true },
+      filter:['!=',['get','alIcon'],''] });
 
     map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':26,'circle-color':'#41B6E6','circle-opacity':0.14,'circle-blur':1 } });
     map.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':12,'circle-color':'#41B6E6','circle-opacity':1,'circle-stroke-width':2.5,'circle-stroke-color':'#000000' } });
@@ -1903,7 +1917,27 @@ function filtered(list) {
 }
 
 // ── Map render ────────────────────────────────────────────────────────────────
-const AIRPORT_LAYERS = ['arcs-arr','arcs-dep','airports-circle','airports-label'];
+const AIRPORT_LAYERS = ['arcs-arr','arcs-dep','airports-circle','airports-label','airports-al-icon'];
+
+// ── Airline icon loading for map nodes ────────────────────────────────────────
+const _alIconLoaded = {};
+function loadAlIconToMap(name) {
+  const domain = AIRLINE_DOMAINS[name]; if (!domain || !map) return;
+  const key = 'ali_' + name.replace(/[^a-z0-9]/gi,'_');
+  if (_alIconLoaded[key] !== undefined) return;
+  _alIconLoaded[key] = false; // loading
+  map.loadImage(`https://www.google.com/s2/favicons?domain=${domain}&sz=32`, (err, img) => {
+    if (!err && img) {
+      if (!map.hasImage(key)) try { map.addImage(key, img); } catch(e) {}
+      _alIconLoaded[key] = true;
+      if (curData) render(); // re-render once icon is available
+    }
+  });
+}
+function alIconKey(name) {
+  const key = 'ali_' + (name||'').replace(/[^a-z0-9]/gi,'_');
+  return (_alIconLoaded[key] === true) ? key : '';
+}
 const STATE_LAYERS   = ['state-line-arr','state-line-dep','state-arrow-arr','state-arrow-dep','state-circle','ord-state-label'];
 const REGION_LAYERS  = ['region-line-arr','region-line-dep','region-arrow-arr','region-arrow-dep','region-circle','region-label'];
 
@@ -2166,10 +2200,22 @@ function render() {
         fareColor: f.intl ? '#555' : (fareCompColor(code) || '#555') } });
   });
 
+  // Pre-load icons for relevant airlines so map nodes show logos
+  if (curAirline !== 'all') loadAlIconToMap(curAirline);
+  if (compareMode) { loadAlIconToMap('United'); loadAlIconToMap('American'); }
+
   const aptFeatures = Object.values(aptMap).map(a => {
     const alBreakdown = Object.entries(a.alCounts).sort((x,y)=>y[1]-x[1]).slice(0,6).map(([n,c])=>({name:n,count:c}));
+    // Determine which airline icon to show on this airport node
+    let alIcon = '';
+    if (curAirline !== 'all') {
+      alIcon = alIconKey(curAirline); // same icon on all nodes for single-airline mode
+    } else if (compareMode) {
+      const dom = Object.entries(a.alCounts).sort((x,y)=>y[1]-x[1])[0]?.[0] || '';
+      alIcon = alIconKey(dom); // dominant airline's icon per node in compare mode
+    }
     return { type:'Feature', geometry:{ type:'Point', coordinates:[a.lon,a.lat] },
-      properties:{ code:a.code, name:a.name, intl:a.intl, arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures, airlineBreakdown:JSON.stringify(alBreakdown) } };
+      properties:{ code:a.code, name:a.name, intl:a.intl, arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures, airlineBreakdown:JSON.stringify(alBreakdown), alIcon } };
   });
 
   if (viewMode === 'airport') {
@@ -2321,16 +2367,24 @@ function buildFareColorExpr() {
 function applyColorMode() {
   if (!map || !map.isStyleLoaded()) return;
   if (fareMode) {
-    // Delegate entirely to filterByComp so competition filter is always respected
     filterByComp(curCompFilter);
     return;
   }
-  // Use airline color when a specific airline is selected OR airline color mode is active
-  const isAl = colorMode === 'airline' || curAirline !== 'all';
+  // Automatic: use airline color when a specific airline is selected
+  const isAl = curAirline !== 'all' || compareMode;
+  const singleAlColor = curAirline !== 'all' ? alColor(curAirline) : null;
+
+  // Airport view arc layers
   map.setPaintProperty('arcs-arr', 'line-color', isAl ? ['get','alColor'] : '#41B6E6');
   map.setPaintProperty('arcs-dep', 'line-color', isAl ? ['get','alColor'] : '#E4002B');
   map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.80 : 0.55);
   map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.80 : 0.55);
+
+  // State / Region view lines — color matches selected airline or default arr/dep colors
+  const stArrColor = (isAl && singleAlColor) ? singleAlColor : '#64ffda';
+  const stDepColor = (isAl && singleAlColor) ? singleAlColor : '#f06292';
+  if (map.getLayer('state-line-arr'))  { map.setPaintProperty('state-line-arr',  'line-color', stArrColor); map.setPaintProperty('state-line-dep',  'line-color', stDepColor); }
+  if (map.getLayer('region-line-arr')) { map.setPaintProperty('region-line-arr', 'line-color', stArrColor); map.setPaintProperty('region-line-dep', 'line-color', stDepColor); }
 }
 
 function periodLabel() {
@@ -2647,7 +2701,12 @@ function buildLegend(airlines) {
     const c=alColor(name), chip=document.createElement('div');
     chip.className='al-chip'+(curAirline===name?' selected':'');
     chip.style.setProperty('--c',c);
-    chip.innerHTML=`<div class="al-dot" style="background:${c}"></div>${name.split(' ')[0]}`;
+    const domain = AIRLINE_DOMAINS[name];
+    // Logo img falls back to colored dot if image fails; .al-dot stays for selection logic anchor
+    const logoHtml = domain
+      ? `<img class="al-logo" src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" width="15" height="15" style="border-radius:3px;flex-shrink:0;border:1px solid ${c}55" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="al-dot" style="background:${c};display:none"></div>`
+      : `<div class="al-dot" style="background:${c}"></div>`;
+    chip.innerHTML=`${logoHtml}${name.split(' ')[0]}`;
     chip.onclick=()=>setAirlineChip(name);
     lg.appendChild(chip);
   });
@@ -2695,12 +2754,7 @@ function setAirlineChip(name) {
   document.querySelectorAll('.al-chip').forEach(c=>{ const n=c.querySelector('.al-dot').nextSibling?.textContent?.trim(); c.classList.toggle('selected',n===curAirline.split(' ')[0]); });
   setAirline(curAirline); // syncs chip indicator
 }
-function setColorMode(m) {
-  colorMode=m;
-  document.getElementById('btnColDir').classList.toggle('on-type',m==='direction');
-  document.getElementById('btnColAl').classList.toggle('on-al',m==='airline');
-  if(curData)render();
-}
+// Color mode is now automatic — no manual toggle needed
 
 
 
@@ -2780,9 +2834,7 @@ function toggleCompareMode() {
     curAirline = 'all';
     document.getElementById('airlineSelect').value = 'all';
     syncQuickBtns();
-    colorMode = 'airline';
-    document.getElementById('btnColDir').classList.remove('on-type');
-    document.getElementById('btnColAl').classList.add('on-al');
+    // Color mode is now automatic based on selection — nothing to toggle manually
   }
   if (curData) render();
 }
@@ -2867,8 +2919,7 @@ function toggleFareMode() {
 
   // Hide color/view controls that are overridden in fare mode (but keep arr/dep always visible)
   const hide = fareMode ? 'none' : '';
-  document.getElementById('row-color-label').style.display = hide;
-  document.getElementById('row-color-btns').style.display  = hide;
+  // row-color-btns removed — color mode is now automatic
   document.getElementById('btnViewState').style.display   = hide;
   document.getElementById('btnViewRegion').style.display  = hide;
 
