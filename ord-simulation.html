@@ -1597,11 +1597,11 @@ async function init() {
       'text-size':9, 'text-offset':[0,1.5], 'text-anchor':'top' },
       paint:{ 'text-color':'#FFFFFF', 'text-halo-color':'#000000', 'text-halo-width':1.5 } });
 
-    // Airline logo icons on airport dots (shown when airline is selected or compare mode)
+    // Airline logo icons centered INSIDE airport dots (shown when airline is selected or compare mode)
     map.addLayer({ id:'airports-al-icon', type:'symbol', source:'airports',
-      layout:{ 'icon-image':['get','alIcon'], 'icon-size':0.5,
-        'icon-anchor':'bottom-right', 'icon-offset':[8,-4],
-        'icon-allow-overlap':false, 'icon-optional':true },
+      layout:{ 'icon-image':['get','alIcon'], 'icon-size':0.55,
+        'icon-anchor':'center', 'icon-offset':[0,0],
+        'icon-allow-overlap':true, 'icon-ignore-placement':true, 'icon-optional':false },
       filter:['!=',['get','alIcon'],''] });
 
     map.addLayer({ id:'ord-glow', type:'circle', source:'ord', paint:{ 'circle-radius':26,'circle-color':'#41B6E6','circle-opacity':0.14,'circle-blur':1 } });
@@ -2407,6 +2407,14 @@ function applyColorMode() {
   map.setPaintProperty('arcs-arr', 'line-opacity', isAl ? 0.80 : 0.55);
   map.setPaintProperty('arcs-dep', 'line-opacity', isAl ? 0.80 : 0.55);
 
+  // Enlarge airport nodes when showing logos so the favicon fits inside the circle
+  const hasLogo = curAirline !== 'all';
+  map.setPaintProperty('airports-circle', 'circle-radius',
+    hasLogo
+      ? ['interpolate',['linear'],['get','total'],1,10,10,14,40,19] // larger for logo
+      : ['interpolate',['linear'],['get','total'],1,4, 10,7, 40,12] // default
+  );
+
   // State / Region view lines — color matches selected airline or default arr/dep colors
   const stArrColor = (isAl && singleAlColor) ? singleAlColor : '#64ffda';
   const stDepColor = (isAl && singleAlColor) ? singleAlColor : '#f06292';
@@ -2838,6 +2846,10 @@ function initCompareMaps() {
 }
 
 function setupCmpMapLayers(m, accentColor) {
+  const isUA = accentColor === '#4fc3f7';
+  const domain  = isUA ? 'united.com' : 'aa.com';
+  const iconKey = isUA ? 'cmp-icon-ua' : 'cmp-icon-aa';
+
   m.addSource('arcs',     { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
   m.addSource('airports', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
   m.addSource('ord',      { type:'geojson', data:{ type:'FeatureCollection', features:[{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{} }] } });
@@ -2847,17 +2859,30 @@ function setupCmpMapLayers(m, accentColor) {
   m.addLayer({ id:'arcs-dep', type:'line', source:'arcs', filter:['==',['get','dir'],'dep'],
     paint:{ 'line-color': accentColor, 'line-width':['interpolate',['linear'],['get','count'],1,0.8,5,1.6,20,3], 'line-opacity':0.82 } });
 
+  // Nodes sized larger so logo fits visibly inside
   m.addLayer({ id:'airports-circle', type:'circle', source:'airports', paint:{
-    'circle-radius':['interpolate',['linear'],['get','total'],1,4,10,7,40,12],
-    'circle-color': accentColor, 'circle-opacity':0.9,
-    'circle-stroke-width':1.5, 'circle-stroke-color':'#000' } });
+    'circle-radius':['interpolate',['linear'],['get','total'],1,9,10,13,40,18],
+    'circle-color': accentColor, 'circle-opacity':0.88,
+    'circle-stroke-width':2, 'circle-stroke-color':'#000000' } });
+
+  // Airline logo centered inside each airport node
+  m.loadImage(`https://www.google.com/s2/favicons?domain=${domain}&sz=32`, (err, img) => {
+    if (!err && img) {
+      if (!m.hasImage(iconKey)) m.addImage(iconKey, img);
+      m.addLayer({ id:'airports-al-icon', type:'symbol', source:'airports',
+        layout:{ 'icon-image': iconKey, 'icon-size': 0.6,
+          'icon-anchor':'center', 'icon-offset':[0,0],
+          'icon-allow-overlap':true, 'icon-ignore-placement':true } });
+    }
+  });
+
   m.addLayer({ id:'airports-label', type:'symbol', source:'airports',
     layout:{ 'text-field':['get','code'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
-      'text-size':9, 'text-offset':[0,1.5], 'text-anchor':'top' },
+      'text-size':9, 'text-offset':[0,1.8], 'text-anchor':'top' },
     paint:{ 'text-color':'#fff', 'text-halo-color':'#000', 'text-halo-width':1.5 } });
 
-  m.addLayer({ id:'ord-glow',   type:'circle', source:'ord', paint:{ 'circle-radius':28,'circle-color': accentColor,'circle-opacity':0.16,'circle-blur':1 } });
-  m.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':13,'circle-color': accentColor,'circle-opacity':1,'circle-stroke-width':3,'circle-stroke-color':'#000' } });
+  m.addLayer({ id:'ord-glow',   type:'circle', source:'ord', paint:{ 'circle-radius':30,'circle-color': accentColor,'circle-opacity':0.16,'circle-blur':1 } });
+  m.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':15,'circle-color': accentColor,'circle-opacity':1,'circle-stroke-width':3,'circle-stroke-color':'#000' } });
   m.addLayer({ id:'ord-label',  type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':11,'text-anchor':'center' }, paint:{ 'text-color':'#000' } });
 
   try { m.setFog({ color:'rgba(0,0,0,0)', 'high-color':'rgba(0,0,0,0)', 'space-color':'#000', 'star-intensity':0.12 }); } catch(e) {}
