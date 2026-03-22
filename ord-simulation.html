@@ -1856,11 +1856,7 @@ async function loadRange(start, end) {
 }
 
 function updateSourceBadge() {
-  const el = document.getElementById('src-badge');
-  const multi = curMonth !== curMonthEnd;
-  el.className = 'live';
-  el.textContent = multi ? `${curMonthEnd - curMonth + 1}-MONTH RANGE` : 'LIVE DATA';
-  el.title = 'AeroDataBox flight-level data · 3 sample days per month';
+  // src-badge removed from header — no-op
 }
 
 function updateTimeFilterAvail() {
