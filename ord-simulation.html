@@ -87,11 +87,20 @@ body {
   -webkit-font-smoothing:antialiased; transform:translateZ(0);
 }
 .tog:hover:not(:disabled) { border-color:var(--blue); color:var(--blue); background:#41B6E610; }
-.tog.on-arr   { border-color:var(--blue);  color:var(--blue);  background:#41B6E618; }
-.tog.on-dep   { border-color:var(--red);   color:var(--red);   background:#E4002B18; }
-.tog.on-type  { border-color:var(--blue);  color:var(--blue);  background:#41B6E618; }
-.tog.on-al    { border-color:var(--green); color:var(--green); background:#2E854018; }
-.tog.on-view  { border-color:var(--amber); color:var(--amber); background:#F5A62318; }
+/* ── Selected states: white text, 2px border, solid glow ── */
+.tog.on-arr  { border:2px solid var(--blue)  !important; color:#fff !important; background:#41B6E63a !important; font-weight:700 !important; box-shadow:0 0 10px #41B6E624; }
+.tog.on-dep  { border:2px solid var(--red)   !important; color:#fff !important; background:#E4002B3a !important; font-weight:700 !important; box-shadow:0 0 10px #E4002B24; }
+.tog.on-type { border:2px solid var(--blue)  !important; color:#fff !important; background:#41B6E63a !important; font-weight:700 !important; box-shadow:0 0 10px #41B6E624; }
+.tog.on-al   { border:2px solid #4fc3f7      !important; color:#fff !important; background:#4fc3f73a !important; font-weight:700 !important; box-shadow:0 0 10px #4fc3f724; }
+.tog.on-view { border:2px solid var(--amber) !important; color:#fff !important; background:#F5A6233a !important; font-weight:700 !important; box-shadow:0 0 10px #F5A62324; }
+
+/* ── Dim unselected siblings when one button in the group is active ── */
+/* Route type (All/Dom/Intl) and color mode (Dir/Airline) share on-type / on-al */
+.ctrl-row:has(.on-type) .tog:not(.on-type) { opacity:0.32; }
+.ctrl-row:has(.on-al)   .tog:not(.on-al)   { opacity:0.32; }
+.ctrl-row:has(.on-view) .tog:not(.on-view) { opacity:0.32; }
+/* Time-of-day grid */
+.time-grid:has(.on-type) .tog:not(.on-type) { opacity:0.32; }
 .tog:disabled { opacity:0.28; cursor:not-allowed; }
 
 .month-btn {
@@ -302,12 +311,22 @@ select#airlineSelect:focus { border-color:var(--blue); }
 }
 .fex-alert-btn:hover { background:#1D9E7515; }
 
-/* Fare competition filter buttons */
-.fare-comp-btn.active { font-weight:600; }
-#fcBtn-all.active  { border-color:#aaa;    color:#ccc;    background:#aaa2; }
-#fcBtn-c.active    { border-color:#1D9E75; color:#1D9E75; background:#1D9E7520; }
-#fcBtn-p.active    { border-color:#BA7517; color:#BA7517; background:#BA751720; }
-#fcBtn-m.active    { border-color:#c0392b; color:#c0392b; background:#c0392b20; }
+/* ── Fare competition filter buttons ── */
+.fare-comp-btn { transition:opacity .15s, border .15s; }
+/* Active: white text, 2px border, solid background */
+.fare-comp-btn.active           { font-weight:700 !important; border-width:2px !important; color:#fff !important; }
+#fcBtn-all.active { border-color:#bbb    !important; background:#bbb4    !important; }
+#fcBtn-c.active   { border-color:#1D9E75 !important; background:#1D9E7540 !important; box-shadow:0 0 10px #1D9E7528; }
+#fcBtn-p.active   { border-color:#BA7517 !important; background:#BA751740 !important; box-shadow:0 0 10px #BA751728; }
+#fcBtn-m.active   { border-color:#c0392b !important; background:#c0392b40 !important; box-shadow:0 0 10px #c0392b28; }
+/* When a specific type is selected: dim + hide non-selected buttons (keep "All routes" for reset) */
+#fare-legend-btns:has(#fcBtn-c.active) .fare-comp-btn:not(#fcBtn-c):not(#fcBtn-all) { display:none; }
+#fare-legend-btns:has(#fcBtn-p.active) .fare-comp-btn:not(#fcBtn-p):not(#fcBtn-all) { display:none; }
+#fare-legend-btns:has(#fcBtn-m.active) .fare-comp-btn:not(#fcBtn-m):not(#fcBtn-all) { display:none; }
+/* "All routes" becomes a dim reset button when specific type is active */
+#fare-legend-btns:has(#fcBtn-c.active) #fcBtn-all,
+#fare-legend-btns:has(#fcBtn-p.active) #fcBtn-all,
+#fare-legend-btns:has(#fcBtn-m.active) #fcBtn-all { opacity:0.45; font-size:10px; padding:4px 8px; }
 /* Fare Story in insights */
 #sec-fare-story { border-left:2px solid #1D9E75; padding-left:10px; }
 .fare-gap-hero { font-size:22px; font-weight:900; font-family:'Montserrat',sans-serif; color:#1D9E75; }
@@ -317,6 +336,23 @@ select#airlineSelect:focus { border-color:var(--blue); }
   padding:10px 12px; margin-top:8px; font-size:11px; color:#ccc; line-height:1.7;
 }
 #learn-why-expand { display:none; font-size:10px; color:#AAAAAA; line-height:1.6; margin-top:7px; border-top:1px solid #333; padding-top:7px; }
+
+/* ── Active-filter chip shown inside section titles ── */
+.active-filter-chip {
+  display:inline-flex; align-items:center; gap:5px;
+  background:#41B6E620; border:1px solid #41B6E755;
+  color:#41B6E7; font-size:10px; font-weight:600;
+  padding:2px 8px 2px 7px; border-radius:20px;
+  font-family:'Roboto',sans-serif; letter-spacing:.5px;
+  white-space:nowrap; margin-left:8px; vertical-align:middle;
+  cursor:pointer; transition:background .15s;
+}
+.active-filter-chip:hover { background:#41B6E730; }
+.active-filter-chip .chip-x { font-size:13px; line-height:1; opacity:.7; }
+/* airline chip uses the airline color */
+.active-filter-chip.chip-ua { background:#4fc3f720; border-color:#4fc3f755; color:#4fc3f7; }
+.active-filter-chip.chip-aa { background:#ef535020; border-color:#ef535055; color:#ef5350; }
+.active-filter-chip.chip-other { background:#aaa2; border-color:#aaa5; color:#ccc; }
 
 /* ── Compare panel ── */
 #compare-panel {
@@ -437,16 +473,14 @@ select#airlineSelect:focus { border-color:var(--blue); }
   background:#0d1f2e !important; border:1px solid #4fc3f766 !important;
   color:#4fc3f7 !important; font-weight:600 !important;
 }
-.btn-ua:hover, .btn-ua.on-al {
-  background:#4fc3f720 !important; border-color:#4fc3f7 !important;
-}
+.btn-ua:hover { background:#4fc3f720 !important; border-color:#4fc3f7 !important; }
+.btn-ua.on-al { background:#4fc3f745 !important; border:2px solid #4fc3f7 !important; color:#fff !important; font-weight:700 !important; box-shadow:0 0 16px #4fc3f730 !important; }
 .btn-aa {
   background:#2e0d0d !important; border:1px solid #ef535066 !important;
   color:#ef5350 !important; font-weight:600 !important;
 }
-.btn-aa:hover, .btn-aa.on-al {
-  background:#ef535020 !important; border-color:#ef5350 !important;
-}
+.btn-aa:hover { background:#ef535020 !important; border-color:#ef5350 !important; }
+.btn-aa.on-al { background:#ef535045 !important; border:2px solid #ef5350 !important; color:#fff !important; font-weight:700 !important; box-shadow:0 0 16px #ef535030 !important; }
 .btn-compare {
   background:#13101e !important; border:1px solid #a78bfa55 !important;
   color:#a78bfa !important; font-size:11px !important; font-weight:600 !important;
@@ -673,7 +707,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
 
     <!-- 2. ROUTE TYPE — Domestic / Intl, arrivals / departures -->
     <div class="ctrl-section">
-      <div class="ctrl-section-title">&#127760; Route Type</div>
+      <div class="ctrl-section-title">&#127760; Route Type<span id="chip-route" style="display:none" class="active-filter-chip" onclick="setRoute('all')"><span id="chip-route-label"></span><span class="chip-x">×</span></span></div>
       <div class="ctrl-row">
         <button class="tog on-type" id="btnAll"  onclick="setRoute('all')"           style="flex:1">All</button>
         <button class="tog"         id="btnDom"  onclick="setRoute('domestic')"      style="flex:1">Domestic</button>
@@ -749,12 +783,12 @@ select#airlineSelect:focus { border-color:var(--blue); }
     </div>
 
     <!-- 6. MORE FILTERS accordion (open by default) --><div class="ctrl-section secondary">
-        <div class="ctrl-section-title">Airline</div>
+        <div class="ctrl-section-title">Airline<span id="chip-airline" style="display:none" class="active-filter-chip chip-other" onclick="setAirline('all');document.getElementById('airlineSelect').value='all';syncQuickBtns()"><span id="chip-airline-label"></span><span class="chip-x">×</span></span></div>
         <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
       </div>
 
       <div class="ctrl-section secondary">
-        <div class="ctrl-section-title">Time of Day</div>
+        <div class="ctrl-section-title">Time of Day<span id="chip-time" style="display:none" class="active-filter-chip" onclick="setTimeFilter('all')"><span id="chip-time-label"></span><span class="chip-x">×</span></span></div>
         <div class="time-grid">
           <button class="tog on-type" id="btnTAll"   onclick="setTimeFilter('all')">All Day</button>
           <button class="tog"         id="btnTMorn"  onclick="setTimeFilter('morning')">Morning<span class="sub">6–11 AM</span></button>
@@ -785,7 +819,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
   <!-- Fare Intel legend -->
   <div id="fare-legend" style="display:none">
     <div class="fare-legend-title">FARE INTEL · COMPETITION LEVEL</div>
-    <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
+    <div id="fare-legend-btns" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">
       <button class="tog fare-comp-btn active" id="fcBtn-all" onclick="filterByComp('all')" style="text-align:left;padding:6px 10px">
         <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;margin-right:6px"></span>All routes
       </button>
@@ -2229,6 +2263,10 @@ function setTimeFilter(t) {
     document.getElementById(id).classList.remove('on-type'));
   const idMap = { all:'btnTAll', morning:'btnTMorn', afternoon:'btnTAftn', evening:'btnTEvng', night:'btnTNight' };
   document.getElementById(idMap[t]).classList.add('on-type');
+  // Update chip indicator
+  const chipT = document.getElementById('chip-time');
+  const labelMap = { morning:'Morning 6–11 AM', afternoon:'Afternoon 12–5 PM', evening:'Evening 6–11 PM', night:'Night 12–5 AM' };
+  if (chipT) { chipT.style.display = t === 'all' ? 'none' : 'inline-flex'; if (t !== 'all') document.getElementById('chip-time-label').textContent = labelMap[t]; }
   if (curData) render();
 }
 
@@ -2588,6 +2626,9 @@ function setRoute(t) {
   routeType = t;
   ['btnAll','btnDom','btnIntl'].forEach(id => document.getElementById(id).classList.remove('on-type'));
   document.getElementById(t==='all'?'btnAll':t==='domestic'?'btnDom':'btnIntl').classList.add('on-type');
+  // Update chip indicator
+  const chipR = document.getElementById('chip-route');
+  if (chipR) { chipR.style.display = t === 'all' ? 'none' : 'inline-flex'; if (t !== 'all') document.getElementById('chip-route-label').textContent = t === 'domestic' ? 'Domestic' : 'Intl'; }
   // International routes don't aggregate meaningfully by US state/region
   const intl = t === 'international';
   document.getElementById('btnViewState').style.display  = intl ? 'none' : '';
@@ -2599,13 +2640,22 @@ function setAirline(v) {
   curAirline=v;
   document.querySelectorAll('.al-chip').forEach(c=>c.classList.toggle('selected',c.querySelector('.al-dot').nextSibling?.textContent?.trim()===v.split(' ')[0]));
   syncQuickBtns();
+  // Update airline chip indicator
+  const chipA = document.getElementById('chip-airline');
+  const chipAL = document.getElementById('chip-airline-label');
+  if (chipA) {
+    const active = v && v !== 'all';
+    chipA.style.display = active ? 'inline-flex' : 'none';
+    if (active && chipAL) chipAL.textContent = v.split(' ')[0];
+    chipA.className = 'active-filter-chip ' + (v==='United'?'chip-ua':v==='American'?'chip-aa':'chip-other');
+  }
   if(curData)render();
 }
 function setAirlineChip(name) {
   curAirline = curAirline===name ? 'all' : name;
   document.getElementById('airlineSelect').value = curAirline;
   document.querySelectorAll('.al-chip').forEach(c=>{ const n=c.querySelector('.al-dot').nextSibling?.textContent?.trim(); c.classList.toggle('selected',n===curAirline.split(' ')[0]); });
-  if(curData)render();
+  setAirline(curAirline); // syncs chip indicator
 }
 function setColorMode(m) {
   colorMode=m;
