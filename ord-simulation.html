@@ -303,7 +303,11 @@ select#airlineSelect:focus { border-color:var(--blue); }
 .fex-alert-btn:hover { background:#1D9E7515; }
 
 /* Fare competition filter buttons */
-.fare-comp-btn.active { border-color:var(--blue); color:var(--blue); background:#41B6E618; }
+.fare-comp-btn.active { font-weight:600; }
+#fcBtn-all.active  { border-color:#aaa;    color:#ccc;    background:#aaa2; }
+#fcBtn-c.active    { border-color:#1D9E75; color:#1D9E75; background:#1D9E7520; }
+#fcBtn-p.active    { border-color:#BA7517; color:#BA7517; background:#BA751720; }
+#fcBtn-m.active    { border-color:#c0392b; color:#c0392b; background:#c0392b20; }
 /* Fare Story in insights */
 #sec-fare-story { border-left:2px solid #1D9E75; padding-left:10px; }
 .fare-gap-hero { font-size:22px; font-weight:900; font-family:'Montserrat',sans-serif; color:#1D9E75; }
@@ -648,7 +652,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
   </div>
   <div class="hdr-right">
     <span id="src-badge" class="live">LIVE DATA</span>
-    <button class="tog on-type" id="btnInsights" onclick="toggleInsights()">&#9998; Insights</button>
+    <button class="tog" id="btnInsights" onclick="toggleInsights()">&#9998; Insights</button>
   </div>
 </div>
 <div id="sidebar-backdrop" onclick="toggleSidebar()"></div>
@@ -804,7 +808,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
   </div>
 
   <!-- Insights panel -->
-  <div id="insights">
+  <div id="insights" class="hidden">
     <div id="ins-header">
       <span>INSIGHTS &amp; ANALYTICS</span>
       <button id="ins-close" onclick="toggleInsights()">&#215;</button>
@@ -1240,7 +1244,7 @@ const curYear = 2025;                 // used only for BTS cross-validation
 // Map 0-based month index → calendar year: 0–2 = 2026 (Jan–Mar), 9–11 = 2025 (Oct–Dec)
 function yearForMonth(mIdx) { return mIdx <= 2 ? 2026 : 2025; }
 let cache = {}, curData = null;
-let insightsOpen = true;
+let insightsOpen = false;
 let preloading = false;
 let viewMode = 'airport';
 let timeFilter = 'all';
