@@ -453,16 +453,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
   padding:4px 8px; line-height:1;
 }
 
-/* ── Filters accordion ── */
-#filters-accordion { overflow:hidden; max-height:0; transition:max-height .35s ease; }
-#filters-accordion.open { max-height:900px; }
-#filters-toggle {
-  width:100%; background:none; border:none; border-bottom:1px solid var(--border);
-  color:var(--text-muted); font-size:11px; font-family:'Montserrat',sans-serif;
-  font-weight:700; letter-spacing:2px; text-transform:uppercase;
-  padding:13px 18px; cursor:pointer; display:flex; justify-content:space-between;
-  align-items:center; transition:color .15s;
-}
+
 #filters-toggle:hover { color:var(--text); }
 #filters-arrow { transition:transform .3s; font-size:10px; }
 #filters-accordion.open ~ * #filters-arrow,
@@ -750,14 +741,7 @@ select#airlineSelect:focus { border-color:var(--blue); }
       </div>
     </div>
 
-    <!-- 6. MORE FILTERS accordion (open by default) -->
-    <button id="filters-toggle" class="open" onclick="toggleFilters()">
-      <span>&#9881; More Filters</span>
-      <span id="filters-arrow" style="transform:rotate(180deg)">&#9660;</span>
-    </button>
-    <div id="filters-accordion" class="open">
-
-      <div class="ctrl-section secondary">
+    <!-- 6. MORE FILTERS accordion (open by default) --><div class="ctrl-section secondary">
         <div class="ctrl-section-title">Airline</div>
         <select id="airlineSelect" onchange="setAirline(this.value)"><option value="all">All Airlines</option></select>
       </div>
@@ -782,8 +766,6 @@ select#airlineSelect:focus { border-color:var(--blue); }
           <button class="tog"         id="btnHmIntl" onclick="setHeatmap('international')"  style="flex:1;font-size:11px">Intl</button>
         </div>
       </div>
-
-    </div><!-- /filters-accordion -->
 
   </div><!-- /sidebar -->
 
@@ -2314,13 +2296,24 @@ function setTimeFilter(t) {
   if (curData) render();
 }
 
+function buildFareColorExpr() {
+  // Mapbox match expression: maps airport code → competition color
+  const expr = ['match', ['get', 'code']];
+  Object.entries(FARE_INTEL).forEach(([code, data]) => {
+    expr.push(code, FARE_COLOR[data[1]] || '#555555');
+  });
+  expr.push('#555555'); // default: airport not in FARE_INTEL
+  return expr;
+}
+
 function applyColorMode() {
   if (!map || !map.isStyleLoaded()) return;
   if (fareMode) {
-    map.setPaintProperty('arcs-arr', 'line-color', ['get','fareColor']);
-    map.setPaintProperty('arcs-dep', 'line-color', ['get','fareColor']);
-    map.setPaintProperty('arcs-arr', 'line-opacity', 0.80);
-    map.setPaintProperty('arcs-dep', 'line-opacity', 0.80);
+    const fareExpr = buildFareColorExpr();
+    map.setPaintProperty('arcs-arr', 'line-color', fareExpr);
+    map.setPaintProperty('arcs-dep', 'line-color', fareExpr);
+    map.setPaintProperty('arcs-arr', 'line-opacity', 0.85);
+    map.setPaintProperty('arcs-dep', 'line-opacity', 0.85);
     return;
   }
   const isAl = colorMode === 'airline';
@@ -2721,14 +2714,7 @@ function applyHeatmap() {
   }
 }
 
-function toggleFilters() {
-  const acc = document.getElementById('filters-accordion');
-  const btn = document.getElementById('filters-toggle');
-  const arrow = document.getElementById('filters-arrow');
-  acc.classList.toggle('open');
-  btn.classList.toggle('open');
-  arrow.style.transform = acc.classList.contains('open') ? 'rotate(180deg)' : '';
-}
+
 
 function toggleInsightsMore() {
   const more = document.getElementById('ins-more');
