@@ -149,6 +149,25 @@ select#airlineSelect:focus { border-color:var(--blue); }
 #map-wrap { flex:1; position:relative; overflow:hidden; }
 #map { position:absolute; inset:0; }
 
+/* ── Two-globe compare mode ── */
+#compare-maps-wrap {
+  position:absolute; inset:0; display:none; flex-direction:row;
+}
+#compare-maps-wrap.cmp-active { display:flex; }
+#map-ua, #map-aa { flex:1; position:relative; }
+#map-ua { border-right:2px solid #4fc3f755; }
+#map-aa { border-left:2px solid #ef535055; }
+/* Airline label overlay inside each compare map */
+.cmp-map-badge {
+  position:absolute; top:10px; z-index:5; pointer-events:none;
+  display:flex; align-items:center; gap:7px;
+  font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800;
+  letter-spacing:2px; text-transform:uppercase;
+  padding:7px 14px; border-radius:6px;
+}
+#cmp-badge-ua { left:10px; color:#4fc3f7; background:rgba(4,18,32,0.82); border:1px solid #4fc3f755; }
+#cmp-badge-aa { right:10px; color:#ef5350; background:rgba(32,4,4,0.82); border:1px solid #ef535055; }
+
 /* ── Insights panel ── */
 #insights {
   position:absolute; right:14px; top:12px; bottom:12px;
@@ -832,6 +851,16 @@ select#airlineSelect:focus { border-color:var(--blue); }
   <div id="map-wrap">
   <div id="map"></div>
 
+  <!-- Two-globe compare mode: UA left, AA right -->
+  <div id="compare-maps-wrap">
+    <div id="map-ua">
+      <div class="cmp-map-badge" id="cmp-badge-ua">&#9992; United</div>
+    </div>
+    <div id="map-aa">
+      <div class="cmp-map-badge" id="cmp-badge-aa">American &#9992;</div>
+    </div>
+  </div>
+
   <!-- UA vs AA Compare Panel — full-width bottom split -->
   <div id="compare-panel" class="hidden">
     <div id="cmp-ua-side">
@@ -842,12 +871,6 @@ select#airlineSelect:focus { border-color:var(--blue); }
     <div id="cmp-aa-side">
       <div id="cmp-aa"></div>
     </div>
-  </div>
-
-  <!-- Map labels shown when compare mode is active -->
-  <div id="compare-map-labels" class="hidden">
-    <div id="cml-ua">&#9992; United<span class="cml-sub">Blue routes — click a route for details</span></div>
-    <div id="cml-aa">American &#9992;<span class="cml-sub">Red routes — click a route for details</span></div>
   </div>
 
   <!-- Fare Intel legend -->
@@ -1327,6 +1350,8 @@ let insightsOpen = false;
 let preloading = false;
 let viewMode = 'airport';
 let timeFilter = 'all';
+let mapboxToken = null; // stored on init for lazy compare-map creation
+let mapUA = null, mapAA = null, _cmpMapsReady = false, _cmpSyncLock = false;
 let fareMode = false;
 let compareMode = false;
 let playIntro = false;
@@ -1519,6 +1544,7 @@ populateAirlineDropdown(); // pre-fill with known airlines before data loads
 // ── Mapbox init ──────────────────────────────────────────────────────────────
 async function init() {
   const cfg = await fetch('/api/config').then(r => r.json());
+  mapboxToken = cfg.mapboxToken;
   mapboxgl.accessToken = cfg.mapboxToken;
 
   if (!mapboxgl.supported()) {
@@ -2223,6 +2249,7 @@ function render() {
     else { map.getSource('arcs').setData(fc(arcFeatures)); }
     map.getSource('airports').setData(fc(aptFeatures));
     applyColorMode();
+    if (compareMode) renderCompare(); // also update the two globe maps
   } else if (viewMode === 'state') {
     renderState(fArr, fDep);
   } else {
@@ -2775,6 +2802,106 @@ function toggleInsightsMore() {
 // ── Draggable compare panel ───────────────────────────────────────────────────
 // Compare panel is now a fixed full-width bottom strip — no dragging needed
 
+// ── Two-globe compare maps ────────────────────────────────────────────────────
+function initCompareMaps() {
+  if (_cmpMapsReady || !mapboxToken) return;
+
+  const commonOpts = {
+    style: 'mapbox://styles/mapbox/dark-v11',
+    center: map ? map.getCenter() : [ORD_LNG, ORD_LAT],
+    zoom:   map ? map.getZoom()   : 3.8,
+    projection: 'globe',
+    failIfMajorPerformanceCaveat: false,
+    attributionControl: false,
+  };
+
+  mapboxgl.accessToken = mapboxToken;
+  mapUA = new mapboxgl.Map({ container:'map-ua', ...commonOpts });
+  mapAA = new mapboxgl.Map({ container:'map-aa', ...commonOpts });
+
+  let uaDone = false, aaDone = false;
+  function checkBothReady() {
+    if (!uaDone || !aaDone) return;
+    _cmpMapsReady = true;
+    // Sync cameras bidirectionally
+    mapUA.on('move', () => { if (_cmpSyncLock) return; _cmpSyncLock=true; mapAA.jumpTo({ center:mapUA.getCenter(), zoom:mapUA.getZoom(), bearing:mapUA.getBearing(), pitch:mapUA.getPitch() }); _cmpSyncLock=false; });
+    mapAA.on('move', () => { if (_cmpSyncLock) return; _cmpSyncLock=true; mapUA.jumpTo({ center:mapAA.getCenter(), zoom:mapAA.getZoom(), bearing:mapAA.getBearing(), pitch:mapAA.getPitch() }); _cmpSyncLock=false; });
+    // Sync with main map camera too
+    if (map) {
+      map.on('move', () => { if (_cmpSyncLock || !compareMode) return; _cmpSyncLock=true; const c={center:map.getCenter(),zoom:map.getZoom(),bearing:map.getBearing(),pitch:map.getPitch()}; mapUA.jumpTo(c); mapAA.jumpTo(c); _cmpSyncLock=false; });
+    }
+    if (curData && compareMode) renderCompare();
+  }
+
+  mapUA.on('load', () => { setupCmpMapLayers(mapUA, '#4fc3f7'); uaDone=true; checkBothReady(); });
+  mapAA.on('load', () => { setupCmpMapLayers(mapAA, '#ef5350'); aaDone=true; checkBothReady(); });
+}
+
+function setupCmpMapLayers(m, accentColor) {
+  m.addSource('arcs',     { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+  m.addSource('airports', { type:'geojson', data:{ type:'FeatureCollection', features:[] } });
+  m.addSource('ord',      { type:'geojson', data:{ type:'FeatureCollection', features:[{ type:'Feature', geometry:{ type:'Point', coordinates:[ORD_LNG,ORD_LAT] }, properties:{} }] } });
+
+  m.addLayer({ id:'arcs-arr', type:'line', source:'arcs', filter:['==',['get','dir'],'arr'],
+    paint:{ 'line-color': accentColor, 'line-width':['interpolate',['linear'],['get','count'],1,0.8,5,1.6,20,3], 'line-opacity':0.82 } });
+  m.addLayer({ id:'arcs-dep', type:'line', source:'arcs', filter:['==',['get','dir'],'dep'],
+    paint:{ 'line-color': accentColor, 'line-width':['interpolate',['linear'],['get','count'],1,0.8,5,1.6,20,3], 'line-opacity':0.82 } });
+
+  m.addLayer({ id:'airports-circle', type:'circle', source:'airports', paint:{
+    'circle-radius':['interpolate',['linear'],['get','total'],1,4,10,7,40,12],
+    'circle-color': accentColor, 'circle-opacity':0.9,
+    'circle-stroke-width':1.5, 'circle-stroke-color':'#000' } });
+  m.addLayer({ id:'airports-label', type:'symbol', source:'airports',
+    layout:{ 'text-field':['get','code'], 'text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],
+      'text-size':9, 'text-offset':[0,1.5], 'text-anchor':'top' },
+    paint:{ 'text-color':'#fff', 'text-halo-color':'#000', 'text-halo-width':1.5 } });
+
+  m.addLayer({ id:'ord-glow',   type:'circle', source:'ord', paint:{ 'circle-radius':28,'circle-color': accentColor,'circle-opacity':0.16,'circle-blur':1 } });
+  m.addLayer({ id:'ord-circle', type:'circle', source:'ord', paint:{ 'circle-radius':13,'circle-color': accentColor,'circle-opacity':1,'circle-stroke-width':3,'circle-stroke-color':'#000' } });
+  m.addLayer({ id:'ord-label',  type:'symbol', source:'ord', layout:{ 'text-field':'ORD','text-font':['DIN Offc Pro Bold','Arial Unicode MS Bold'],'text-size':11,'text-anchor':'center' }, paint:{ 'text-color':'#000' } });
+
+  try { m.setFog({ color:'rgba(0,0,0,0)', 'high-color':'rgba(0,0,0,0)', 'space-color':'#000', 'star-intensity':0.12 }); } catch(e) {}
+}
+
+function renderCompare() {
+  if (!_cmpMapsReady || !curData) return;
+  renderToCompareMap(mapUA, 'United');
+  renderToCompareMap(mapAA, 'American');
+}
+
+function renderToCompareMap(m, airline) {
+  if (!m || !m.isStyleLoaded()) return;
+
+  function filterFlights(list) {
+    return list.filter(f => {
+      if (routeType==='domestic' && f.intl) return false;
+      if (routeType==='international' && !f.intl) return false;
+      if (timeFilter !== 'all') { const b=TIME_BANDS[timeFilter]; if (b && !(f.hour>=b.min && f.hour<=b.max)) return false; }
+      return f.airline === airline;
+    });
+  }
+
+  const fArr = showArr ? filterFlights(curData.arrivals)  : [];
+  const fDep = showDep ? filterFlights(curData.departures) : [];
+
+  const arrCnt={}, depCnt={};
+  fArr.forEach(f => { arrCnt[f.code]=(arrCnt[f.code]||0)+(f.count||1); });
+  fDep.forEach(f => { depCnt[f.code]=(depCnt[f.code]||0)+(f.count||1); });
+
+  const aptAgg={};
+  function agg(list, type) { list.forEach(f => { if(!aptAgg[f.code]) aptAgg[f.code]={code:f.code,name:f.name,lat:f.lat,lon:f.lon,arrivals:0,departures:0}; aptAgg[f.code][type]++; }); }
+  agg(fArr,'arrivals'); agg(fDep,'departures');
+
+  const arcFeatures=[];
+  Object.keys(arrCnt).forEach(code => { const f=fArr.find(x=>x.code===code); if(!f) return; arcFeatures.push({ type:'Feature', geometry:{ type:'LineString', coordinates:[[f.lon,f.lat],[ORD_LNG,ORD_LAT]] }, properties:{ dir:'arr', code, count:arrCnt[code] } }); });
+  Object.keys(depCnt).forEach(code => { const f=fDep.find(x=>x.code===code); if(!f) return; arcFeatures.push({ type:'Feature', geometry:{ type:'LineString', coordinates:[[ORD_LNG,ORD_LAT],[f.lon,f.lat]] }, properties:{ dir:'dep', code, count:depCnt[code] } }); });
+
+  const aptFeatures = Object.values(aptAgg).map(a => ({ type:'Feature', geometry:{ type:'Point', coordinates:[a.lon,a.lat] }, properties:{ code:a.code, name:a.name, arrivals:a.arrivals, departures:a.departures, total:a.arrivals+a.departures } }));
+
+  try { m.getSource('arcs').setData({ type:'FeatureCollection', features:arcFeatures }); } catch(e) {}
+  try { m.getSource('airports').setData({ type:'FeatureCollection', features:aptFeatures }); } catch(e) {}
+}
+
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   const bd = document.getElementById('sidebar-backdrop');
@@ -2827,14 +2954,20 @@ function toggleCompareMode() {
   compareMode = !compareMode;
   document.getElementById('btnCompare').classList.toggle('on-type', compareMode);
   document.getElementById('compare-panel').classList.toggle('hidden', !compareMode);
-  document.getElementById('compare-map-labels').classList.toggle('hidden', !compareMode);
 
+  // Show two-globe view or revert to single map
+  const cmpWrap = document.getElementById('compare-maps-wrap');
+  const singleMap = document.getElementById('map');
   if (compareMode) {
-    // Show all airlines so both appear, force airline color mode (UA=blue, AA=red)
+    if (cmpWrap) cmpWrap.classList.add('cmp-active');
+    if (singleMap) singleMap.style.visibility = 'hidden';
     curAirline = 'all';
-    document.getElementById('airlineSelect').value = 'all';
+    if (document.getElementById('airlineSelect')) document.getElementById('airlineSelect').value = 'all';
     syncQuickBtns();
-    // Color mode is now automatic based on selection — nothing to toggle manually
+    initCompareMaps(); // lazy init — no-op if already done
+  } else {
+    if (cmpWrap) cmpWrap.classList.remove('cmp-active');
+    if (singleMap) singleMap.style.visibility = '';
   }
   if (curData) render();
 }
